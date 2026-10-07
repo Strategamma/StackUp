@@ -8,6 +8,7 @@ Browser-based local-Wi-Fi card game for 2–8 players, inspired by simultaneous-
 - Vanilla HTML/CSS/JavaScript client rendered primarily on one canvas
 - Installable PWA shell with standalone display, cached assets, and Android/iOS home-screen metadata
 - One server-authoritative local-network table with deck, rounds, row placement, scores, and reconnect state
+- Production deployment: `https://stackup-i88f.onrender.com`; intended custom domain: `stackup.decadenceinc.com`
 
 ## Game rules
 
