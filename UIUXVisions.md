@@ -1,0 +1,11 @@
+# StackUp UI/UX
+
+- Warm paper-and-ink tabletop aesthetic with orange/red danger accents and green ready states.
+- Penalty values use compact vector skulls, not font glyphs, for consistent rendering across devices.
+- Motion communicates state: cards deal in, selected cards lift/bounce, locked avatars pulse, and selectable penalty rows breathe.
+- Keep motion subtle, phone-friendly, and respectful of `prefers-reduced-motion`.
+- Phone gameplay uses compact rows without empty-card outlines and a non-overlapping two-row hand grid with large tap targets.
+- Every table screen uses the same top-left Exit control; destructive navigation requires confirmation and clearly explains mid-game auto-play.
+- Round transitions stay inline on the table: resolved rows, hands, and scores remain visible while the host gets a centered next-round action and guests receive a waiting toast.
+- Rules are available before and during play; first-time players see onboarding once, and tentative card selection previews the destination row or warns that a stack choice will be required.
+- Resolution replays authoritative events one at a time: cards travel to highlighted rows, scores increment after impact, and collected stacks trigger a red skull burst with an exact penalty label.

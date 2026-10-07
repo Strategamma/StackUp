@@ -1,0 +1,24 @@
+:root { color-scheme: light; font-family: Inter, ui-rounded, "Avenir Next", system-ui, sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #fff4d8; }
+main { position: relative; width: 100%; height: 100%; }
+canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; }
+.panel { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; background: #fff4d8; }
+.panel.hidden { display: none; }
+.mark { width: 58px; height: 58px; display: grid; place-items: center; border: 3px solid #17211f; border-radius: 16px; background: #f5a623; color: #17211f; font: 900 34px/1 Georgia, serif; transform: rotate(-4deg); box-shadow: 5px 5px 0 #17211f; }
+.eyebrow { margin: 28px 0 4px; letter-spacing: .22em; font-size: 11px; font-weight: 900; color: #56706a; }
+h1 { margin: 0; color: #17211f; font: 900 clamp(52px, 9vw, 84px)/.95 Georgia, serif; letter-spacing: -.06em; }
+h1 span { color: #d95536; }
+.intro { color: #48605a; line-height: 1.55; margin: 18px 0 30px; }
+form { width: min(480px, 100%); text-align: left; }
+label { display: block; margin: 0 0 7px 4px; color: #48605a; font-size: 10px; font-weight: 900; letter-spacing: .14em; }
+.join-row { display: flex; gap: 9px; }
+input, button { min-height: 52px; border: 2px solid #17211f; border-radius: 13px; font: 800 16px/1 inherit; }
+input { min-width: 0; flex: 1; padding: 0 16px; background: #fffdf8; color: #17211f; outline: none; box-shadow: 0 4px 0 #17211f; }
+input:focus { border-color: #d95536; }
+button { padding: 0 20px; color: white; background: #d95536; cursor: pointer; box-shadow: 0 4px 0 #17211f; }
+button:active { transform: translateY(3px); box-shadow: 0 1px 0 #17211f; }
+.hint { margin-top: 22px; color: #78908a; font-size: 12px; }
+#toast { position: absolute; top: max(18px, env(safe-area-inset-top)); left: 50%; z-index: 3; transform: translate(-50%, -140%); padding: 11px 18px; border: 2px solid #17211f; border-radius: 999px; background: #17211f; color: white; font-size: 13px; font-weight: 800; transition: transform .25s ease; pointer-events: none; }
+#toast.show { transform: translate(-50%, 0); }
+@media (max-width: 520px) { .join-row { flex-direction: column; } button { width: 100%; } }
