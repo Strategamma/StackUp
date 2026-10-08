@@ -1,5 +1,7 @@
 Original prompt: Create an HTML game with upto 8 players join via local Wifi
 
+Current request: Integrate StackUp with decadenceinc.com, add navigation in and out, premium animations, a winning animation, richer card animation, and a more intuitive join flow.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.
@@ -24,3 +26,6 @@ Original prompt: Create an HTML game with upto 8 players join via local Wifi
 - Ten rule/multiplayer tests and client/service-worker syntax checks pass. Playwright visual capture remains unavailable because its browser executable is blocked/missing in this macOS environment.
 - Added sequential resolution replay with animated card travel, target-row emphasis, staged score increments, skull bursts, exact penalty labels, final-round replay, and text-state exposure.
 - Resolution changes pass all ten rule/multiplayer tests and syntax checks; the required Playwright run was attempted again but cannot launch because the local Chromium executable is unavailable.
+- Added Decadence Arcade navigation, a clearer three-step join experience, invite-link sharing, premium card sheen/shadows, resolution trails and impact rings, animated winner ranking, crown/confetti celebration, and replay/arcade actions. Server rules remain unchanged; all 10 rule/integration tests and client syntax checks pass.
+- Playwright Chromium was installed to a temporary writable location and the required client was rerun, but macOS denied Chromium's Mach rendezvous process. Built-in browser access to localhost was also denied, so screenshot QA remains externally blocked; HTTP smoke checks and deterministic hooks remain healthy.
+- TODO: after deployment, manually inspect the join screen, compact table header, resolution trail, and final celebration on one phone and one desktop browser.

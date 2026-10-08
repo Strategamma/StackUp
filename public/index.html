@@ -16,22 +16,37 @@
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #fff4d8; }
     main { position: relative; width: 100%; height: 100%; }
     canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; }
-    .panel { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; background: #fff4d8; }
+    .panel { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 76px 24px 32px; text-align: center; overflow: hidden; background: radial-gradient(circle at 50% 18%, #fffdf8 0, #fff4d8 42%, #f7e9c6 100%); transition: opacity .28s ease, transform .28s ease; }
+    .panel::before, .panel::after { content: ''; position: absolute; width: min(46vw, 560px); aspect-ratio: 1; border: 1px solid rgba(217,85,54,.14); border-radius: 50%; pointer-events: none; }
+    .panel::before { left: -18vw; top: -22vw; box-shadow: 0 0 0 32px rgba(245,166,35,.04), 0 0 0 72px rgba(245,166,35,.025); }
+    .panel::after { right: -22vw; bottom: -25vw; box-shadow: 0 0 0 38px rgba(57,117,103,.035), 0 0 0 84px rgba(57,117,103,.02); }
     .panel.hidden { display: none; }
-    .mark { width: 58px; height: 58px; display: grid; place-items: center; border: 3px solid #17211f; border-radius: 16px; background: #f5a623; color: #17211f; font: 900 34px/1 Georgia, serif; transform: rotate(-4deg); box-shadow: 5px 5px 0 #17211f; animation: mark-float 2.8s ease-in-out infinite; }
-    .eyebrow { margin: 28px 0 4px; letter-spacing: .22em; font-size: 11px; font-weight: 900; color: #56706a; }
+    .panel.joining { opacity: 0; transform: scale(1.025); pointer-events: none; }
+    .arcade-link { position: fixed; top: max(18px, env(safe-area-inset-top)); left: max(18px, env(safe-area-inset-left)); z-index: 8; display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 0 14px; border: 1.5px solid #17211f; border-radius: 999px; color: #17211f; background: rgba(255,253,248,.86); box-shadow: 0 4px 0 rgba(23,33,31,.16); text-decoration: none; font-size: 12px; font-weight: 900; backdrop-filter: blur(10px); transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+    .arcade-link:hover, .arcade-link:focus-visible { transform: translateY(-2px); background: #fff; box-shadow: 0 6px 0 rgba(23,33,31,.16); outline: 3px solid rgba(245,166,35,.3); outline-offset: 2px; }
+    .arcade-link[hidden] { display: none; }
+    .arcade-link .diamond { width: 8px; height: 8px; background: #d95536; transform: rotate(45deg); }
+    .mark { position: relative; width: 62px; height: 62px; display: grid; place-items: center; border: 3px solid #17211f; border-radius: 18px; background: #f5a623; color: #17211f; font: 900 36px/1 Georgia, serif; transform: rotate(-4deg); box-shadow: 6px 6px 0 #17211f; animation: mark-float 2.8s ease-in-out infinite; }
+    .mark::after { content: ''; position: absolute; inset: 7px; border: 1px solid rgba(255,255,255,.55); border-radius: 10px; }
+    .eyebrow { margin: 25px 0 5px; letter-spacing: .22em; font-size: 11px; font-weight: 900; color: #56706a; }
     h1 { margin: 0; color: #17211f; font: 900 clamp(52px, 9vw, 84px)/.95 Georgia, serif; letter-spacing: -.06em; }
     h1 span { color: #d95536; }
-    .intro { color: #48605a; line-height: 1.55; margin: 18px 0 30px; }
-    form { width: min(480px, 100%); text-align: left; }
+    .intro { color: #48605a; line-height: 1.55; margin: 15px 0 24px; }
+    .join-card { position: relative; z-index: 1; width: min(520px, 100%); padding: 22px; border: 1.5px solid #d7cdaa; border-radius: 22px; background: rgba(255,253,248,.82); box-shadow: 0 18px 55px rgba(82,63,31,.11); backdrop-filter: blur(10px); }
+    form { width: 100%; text-align: left; }
     label { display: block; margin: 0 0 7px 4px; color: #48605a; font-size: 10px; font-weight: 900; letter-spacing: .14em; }
     .join-row { display: flex; gap: 9px; }
     input, button { min-height: 52px; border: 2px solid #17211f; border-radius: 13px; font: 800 16px/1 inherit; }
     input { min-width: 0; flex: 1; padding: 0 16px; background: #fffdf8; color: #17211f; outline: none; box-shadow: 0 4px 0 #17211f; }
-    input:focus { border-color: #d95536; }
-    button { padding: 0 20px; color: white; background: #d95536; cursor: pointer; box-shadow: 0 4px 0 #17211f; }
+    input:focus { border-color: #d95536; box-shadow: 0 4px 0 #17211f, 0 0 0 4px rgba(217,85,54,.12); }
+    button { padding: 0 20px; color: white; background: #d95536; cursor: pointer; box-shadow: 0 4px 0 #17211f; transition: transform .15s ease, box-shadow .15s ease, filter .15s ease; }
+    button:hover { filter: brightness(1.05); transform: translateY(-1px); box-shadow: 0 5px 0 #17211f; }
     button:active { transform: translateY(3px); box-shadow: 0 1px 0 #17211f; }
-    .hint { margin-top: 22px; color: #78908a; font-size: 12px; }
+    .join-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 17px 0 0; }
+    .join-step { padding: 10px 8px; border-radius: 11px; background: #f6efdd; color: #617670; font-size: 10px; line-height: 1.25; text-align: center; }
+    .join-step strong { display: block; margin-bottom: 3px; color: #17211f; font-size: 11px; }
+    .join-step b { display: inline-grid; place-items: center; width: 19px; height: 19px; margin-bottom: 5px; border-radius: 50%; background: #17211f; color: #fff; font-size: 9px; }
+    .hint { margin: 14px 0 0; color: #78908a; font-size: 12px; }
     .install { margin-top: 14px; min-height: 42px; background: #397567; }
     .install[hidden] { display: none; }
     .secondary { min-height: 42px; margin-top: 10px; background: transparent; color: #17211f; box-shadow: none; }
@@ -50,46 +65,59 @@
     #toast { position: absolute; top: max(18px, env(safe-area-inset-top)); left: 50%; z-index: 3; transform: translate(-50%, -140%); padding: 11px 18px; border: 2px solid #17211f; border-radius: 999px; background: #17211f; color: white; font-size: 13px; font-weight: 800; transition: transform .25s ease; pointer-events: none; }
     #toast.show { transform: translate(-50%, 0); }
     @keyframes mark-float { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
-    @media (prefers-reduced-motion: reduce) { .mark { animation: none; } * { scroll-behavior: auto !important; } }
+    @media (prefers-reduced-motion: reduce) { .mark { animation: none; } * { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
     @media (max-width: 520px) {
-      .panel { justify-content: flex-start; padding: max(28px, env(safe-area-inset-top)) 18px 18px; overflow-y: auto; }
+      .panel { justify-content: flex-start; padding: max(78px, calc(env(safe-area-inset-top) + 68px)) 18px 18px; overflow-y: auto; }
+      .arcade-link { top: max(14px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); }
       .mark { width: 48px; height: 48px; font-size: 28px; border-radius: 13px; }
       .eyebrow { margin-top: 20px; }
       h1 { font-size: 50px; }
       .intro { margin: 12px 0 20px; font-size: 14px; }
+      .join-card { padding: 17px; }
       .join-row { flex-direction: column; }
       input, button { min-height: 48px; }
       button { width: 100%; }
       .hint { margin-top: 16px; }
+      .join-steps { gap: 5px; }
+      .join-step { padding: 9px 4px; font-size: 9px; }
       .help-card { padding: 18px; }
       .rule-grid { grid-template-columns: 1fr; }
       .rule { min-height: 92px; }
     }
     @media (max-height: 620px) and (max-width: 700px) {
-      .mark, .intro { display: none; }
+      .mark, .intro, .join-steps { display: none; }
       .eyebrow { margin-top: 0; }
       h1 { font-size: 42px; margin-bottom: 14px; }
+      .panel { padding-top: 58px; }
     }
   </style>
 </head>
 <body>
   <main>
     <canvas id="game" aria-label="StackUp game table"></canvas>
+    <a class="arcade-link" href="https://decadenceinc.com" aria-label="Back to Decadence Inc. Arcade"><span aria-hidden="true">←</span><span class="diamond" aria-hidden="true"></span><span>Decadence Arcade</span></a>
     <section id="join" class="panel">
       <div class="mark">S</div>
-      <p class="eyebrow">LOCAL TABLE GAME</p>
+      <p class="eyebrow">A DECADENCE INC. TABLE GAME</p>
       <h1>Stack<span>Up</span></h1>
-      <p class="intro">Pick smart. Build stacks.<br>Don't take the sixth card.</p>
-      <form id="join-form">
-        <label for="name">PLAYER NAME</label>
-        <div class="join-row">
-          <input id="name" maxlength="18" autocomplete="nickname" placeholder="Your name" required>
-          <button type="submit">Join table</button>
+      <p class="intro">Pick smart. Read the table.<br>Leave with the fewest skulls.</p>
+      <div class="join-card">
+        <form id="join-form">
+          <label for="name">WHAT SHOULD THE TABLE CALL YOU?</label>
+          <div class="join-row">
+            <input id="name" maxlength="18" autocomplete="nickname" placeholder="Enter your name" enterkeyhint="go" required autofocus>
+            <button type="submit">Take a seat</button>
+          </div>
+        </form>
+        <div class="join-steps" aria-label="How joining works">
+          <div class="join-step"><b>1</b><strong>Enter a name</strong>No account needed</div>
+          <div class="join-step"><b>2</b><strong>Share the link</strong>Invite your crew</div>
+          <div class="join-step"><b>3</b><strong>Lock your card</strong>Reveal together</div>
         </div>
-      </form>
+        <p class="hint">2–8 players · one shared online table</p>
+      </div>
       <button id="show-help" class="secondary" type="button">How to play</button>
       <button id="install-app" class="install" type="button" hidden>Install StackUp</button>
-      <p class="hint">2–8 players · same network · no account</p>
     </section>
     <div id="toast" role="status"></div>
     <section id="help" class="help-panel" aria-modal="true" role="dialog" aria-labelledby="help-title" hidden>

@@ -8,6 +8,7 @@ const showHelpButton = document.querySelector('#show-help');
 const helpPanel = document.querySelector('#help');
 const closeHelpButton = document.querySelector('#close-help');
 const toast = document.querySelector('#toast');
+const arcadeLink = document.querySelector('.arcade-link');
 
 const colors = { ink: '#17211f', paper: '#fff4d8', cream: '#fffdf8', red: '#d95536', orange: '#f5a623', green: '#397567', pale: '#e7ddbe', muted: '#6c817c' };
 let state = { phase: 'join', players: [], rows: [], you: null, turn: 0, maxTurns: 10, lastEvents: [] };
@@ -15,6 +16,7 @@ let socket;
 let hitAreas = [];
 let toastTimer;
 let leavePrompt = false;
+let leaveTarget = 'home';
 let manualClose = false;
 let visualTime = performance.now();
 let sceneAnimationStart = visualTime;
@@ -50,6 +52,13 @@ showHelpButton.addEventListener('click', showHelp);
 closeHelpButton.addEventListener('click', closeHelp);
 helpPanel.addEventListener('click', (event) => { if (event.target === helpPanel) closeHelp(); });
 
+function hideJoinPanel() {
+  arcadeLink.hidden = true;
+  if (joinPanel.classList.contains('hidden') || joinPanel.classList.contains('joining')) return;
+  joinPanel.classList.add('joining');
+  setTimeout(() => joinPanel.classList.add('hidden'), reduceMotion ? 0 : 260);
+}
+
 function connect(name) {
   if (location.protocol === 'file:') {
     showToast('Start the game server, then open its Wi-Fi address.');
@@ -66,7 +75,7 @@ function connect(name) {
     const message = JSON.parse(data);
     if (message.type === 'joined') {
       localStorage.setItem('stackup-token', message.token);
-      joinPanel.classList.add('hidden');
+      hideJoinPanel();
       showToast('Joined the table');
       if (!localStorage.getItem('stackup-seen-rules')) showHelp();
     }
@@ -88,7 +97,7 @@ function connect(name) {
       if (message.state.you?.selected !== state.you?.selected) selectionAnimationStart = now;
       const enteredRoundEnd = message.state.phase === 'roundEnd' && state.phase !== 'roundEnd';
       state = message.state;
-      joinPanel.classList.add('hidden');
+      hideJoinPanel();
       clearTimeout(waitingToastTimer);
       if (enteredRoundEnd && state.you?.id !== state.hostId) {
         const delay = resolutionReplay ? resolutionReplay.events.length * RESOLUTION_STEP_MS + 150 : 0;
@@ -96,7 +105,7 @@ function connect(name) {
       }
       render();
     }
-    if (message.type === 'left') returnToHome();
+    if (message.type === 'left') finishLeave();
     if (message.type === 'error') showToast(message.message);
   });
   socket.addEventListener('close', () => {
@@ -127,15 +136,33 @@ function returnToHome() {
   localStorage.removeItem('stackup-token');
   if (socket?.readyState === WebSocket.OPEN) socket.close();
   state = { phase: 'join', players: [], rows: [], you: null, turn: 0, maxTurns: 10, lastEvents: [] };
+  joinPanel.classList.remove('joining');
   joinPanel.classList.remove('hidden');
+  arcadeLink.hidden = false;
   showToast('You left the table');
   render();
 }
 
+function finishLeave() {
+  const destination = leaveTarget;
+  leaveTarget = 'home';
+  returnToHome();
+  if (destination === 'arcade') location.assign('https://decadenceinc.com');
+}
+
 function leaveRoom() {
-  if (socket?.readyState !== WebSocket.OPEN) return returnToHome();
+  if (socket?.readyState !== WebSocket.OPEN) return finishLeave();
   send('leave');
-  setTimeout(() => { if (!manualClose) returnToHome(); }, 800);
+  setTimeout(() => { if (!manualClose) finishLeave(); }, 800);
+}
+
+async function copyInviteLink() {
+  try {
+    await navigator.clipboard.writeText(location.origin);
+    showToast('Invite link copied');
+  } catch {
+    showToast(`Invite players at ${location.host}`);
+  }
 }
 
 function showToast(message) {
@@ -255,9 +282,24 @@ function drawCard(card, x, y, w, h, selected = false, compact = false, entrance 
   const selectedPulse = selected && !reduceMotion ? 1 + Math.sin(visualTime / 120) * .018 : 1;
   ctx.scale(selectedPulse * (.92 + reveal * .08), selectedPulse * (.92 + reveal * .08));
   ctx.translate(-x - w / 2, -y - h / 2);
-  if (selected) { ctx.shadowColor = 'rgba(23,33,31,.3)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5; }
+  ctx.shadowColor = selected ? 'rgba(245,166,35,.42)' : 'rgba(23,33,31,.13)';
+  ctx.shadowBlur = selected ? 18 : 5;
+  ctx.shadowOffsetY = selected ? 7 : 3;
   roundedRect(x, y, w, h, Math.min(12, w * .17), selected ? colors.orange : colors.cream, colors.ink, selected ? 3 : 1.5);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(x + 2, y + 2, w - 4, h - 4, Math.min(10, w * .14)); ctx.clip();
+  const sheen = ctx.createLinearGradient(x, y, x + w, y + h);
+  const shimmer = reduceMotion ? .28 : (Math.sin(visualTime / 700 + card * .17) + 1) / 2;
+  sheen.addColorStop(0, `rgba(255,255,255,${.36 + shimmer * .08})`);
+  sheen.addColorStop(.42, 'rgba(255,255,255,0)');
+  sheen.addColorStop(1, 'rgba(23,33,31,.055)');
+  ctx.fillStyle = sheen; ctx.fillRect(x, y, w, h);
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x + 10, y + 7); ctx.lineTo(x + w - 10, y + 7); ctx.stroke();
   text(card, x + w / 2, y + h * .43, compact ? Math.max(13, w * .32) : Math.max(18, w * .35), colors.ink, 'center', 900, 'Georgia, serif');
+  if (!compact && w >= 56) text(card, x + 9, y + 11, 8, colors.muted, 'center', 900, 'Georgia, serif');
   const count = points(card);
   const skullSize = Math.min(4.8, w / (count * 1.75 + 1));
   const spacing = skullSize * 1.75;
@@ -277,14 +319,22 @@ function button(label, x, y, w, h, onClick, active = true) {
 }
 
 function header(title, subtitle) {
-  roundedRect(12, 10, 62, 34, 10, colors.cream, colors.ink, 1.5);
-  text('← Exit', 43, 27, 11, colors.ink, 'center', 900);
-  hitAreas.push({ x: 12, y: 10, w: 62, h: 34, onClick: () => { leavePrompt = true; } });
+  const compact = innerWidth < 560;
+  roundedRect(12, 10, compact ? 38 : 76, 34, 10, colors.cream, colors.ink, 1.5);
+  text(compact ? '◆' : '◆ Arcade', 12 + (compact ? 19 : 38), 27, compact ? 11 : 10, colors.ink, 'center', 900);
+  hitAreas.push({ x: 12, y: 10, w: compact ? 38 : 76, h: 34, onClick: () => { leaveTarget = 'arcade'; leavePrompt = true; } });
+  const exitX = compact ? 56 : 94;
+  roundedRect(exitX, 10, compact ? 38 : 54, 34, 10, colors.cream, colors.ink, 1.5);
+  text(compact ? '×' : 'Exit', exitX + (compact ? 19 : 27), 27, compact ? 16 : 10, colors.ink, 'center', 900);
+  hitAreas.push({ x: exitX, y: 10, w: compact ? 38 : 54, h: 34, onClick: () => { leaveTarget = 'home'; leavePrompt = true; } });
   text(title, innerWidth / 2, 27, innerWidth < 500 ? 11 : 14, colors.ink, 'center', 900);
   roundedRect(innerWidth - 46, 10, 34, 34, 10, colors.cream, colors.ink, 1.5);
   text('?', innerWidth - 29, 27, 16, colors.ink, 'center', 900, 'Georgia, serif');
   hitAreas.push({ x: innerWidth - 46, y: 10, w: 34, h: 34, onClick: showHelp });
-  if (innerWidth >= 520) text(subtitle, innerWidth - 58, 27, 11, colors.muted, 'right', 800);
+  roundedRect(innerWidth - 86, 10, 34, 34, 10, colors.cream, colors.ink, 1.5);
+  text('↗', innerWidth - 69, 27, 15, colors.ink, 'center', 900);
+  hitAreas.push({ x: innerWidth - 86, y: 10, w: 34, h: 34, onClick: copyInviteLink });
+  if (innerWidth >= 720) text(subtitle, innerWidth - 98, 27, 11, colors.muted, 'right', 800);
   ctx.strokeStyle = '#d7cdaa'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(18, 50); ctx.lineTo(innerWidth - 18, 50); ctx.stroke();
 }
 
@@ -329,6 +379,17 @@ function drawResolutionCard(replay, tableRows, top, rowH, cardW, cardH) {
   const startY = 52;
   const x = startX + (targetX - startX) * travel;
   const y = startY + (targetY - startY) * travel;
+  if (!reduceMotion && travel < .98) {
+    ctx.save();
+    for (let i = 3; i >= 1; i--) {
+      const trailT = Math.max(0, travel - i * .075);
+      ctx.globalAlpha = .09 * (4 - i);
+      const trailX = startX + (targetX - startX) * trailT;
+      const trailY = startY + (targetY - startY) * trailT;
+      roundedRect(trailX, trailY, cardW, cardH, Math.min(10, cardW * .17), colors.orange);
+    }
+    ctx.restore();
+  }
   ctx.save();
   ctx.shadowColor = 'rgba(23,33,31,.32)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 7;
   drawCard(event.card, x, y, cardW, cardH, true, true, 1);
@@ -349,6 +410,10 @@ function drawResolutionCard(replay, tableRows, top, rowH, cardW, cardH) {
     roundedRect(innerWidth / 2 - 72, Math.max(104, targetY - 28), 144, 30, 15, colors.red, colors.ink, 1.5);
     text(`+${event.points} SKULL${event.points === 1 ? '' : 'S'}`, innerWidth / 2, Math.max(119, targetY - 13), 12, '#fff', 'center', 900);
     ctx.restore();
+  } else if (replay.progress > .62) {
+    const impact = clamp((replay.progress - .62) / .25);
+    ctx.save(); ctx.globalAlpha = 1 - impact; ctx.strokeStyle = colors.green; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(targetX + cardW / 2, targetY + cardH / 2, 14 + impact * 28, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
 }
 
@@ -449,21 +514,70 @@ function drawTable() {
   }
 }
 
+function drawCrown(x, y, size, lift = 0) {
+  ctx.save(); ctx.translate(x, y - lift);
+  ctx.fillStyle = colors.orange; ctx.strokeStyle = colors.ink; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-size, size * .4); ctx.lineTo(-size * .78, -size * .7); ctx.lineTo(-size * .25, -size * .15);
+  ctx.lineTo(0, -size); ctx.lineTo(size * .25, -size * .15); ctx.lineTo(size * .78, -size * .7); ctx.lineTo(size, size * .4);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  roundedRect(-size, size * .34, size * 2, size * .38, size * .12, colors.orange, colors.ink, 2);
+  for (const px of [-.78, 0, .78]) { ctx.beginPath(); ctx.arc(size * px, px === 0 ? -size : -size * .7, size * .1, 0, Math.PI * 2); ctx.fillStyle = colors.red; ctx.fill(); }
+  ctx.restore();
+}
+
+function drawCelebration(elapsed) {
+  if (reduceMotion) return;
+  const palette = [colors.red, colors.orange, colors.green, '#f5d982', '#72aeb7'];
+  ctx.save();
+  for (let i = 0; i < 54; i++) {
+    const seedX = ((i * 83) % 101) / 101;
+    const delay = (i % 9) * 90;
+    const fall = Math.max(0, elapsed - delay);
+    const x = seedX * innerWidth + Math.sin(fall / 420 + i) * 22;
+    const y = ((fall * (.055 + (i % 5) * .009) + i * 31) % (innerHeight + 70)) - 50;
+    const size = 4 + (i % 4) * 1.5;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(fall / 260 + i);
+    ctx.fillStyle = palette[i % palette.length];
+    if (i % 3 === 0) { ctx.beginPath(); ctx.arc(0, 0, size / 2, 0, Math.PI * 2); ctx.fill(); }
+    else ctx.fillRect(-size / 2, -size / 3, size, size * .66);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 function drawFinished() {
   header('FINAL SCORES', 'GAME OVER');
   const ranked = [...state.players].sort((a, b) => a.score - b.score);
-  text(`${ranked[0]?.name || 'Nobody'} wins!`, innerWidth / 2, 105, innerWidth < 500 ? 34 : 46, colors.ink, 'center', 900, 'Georgia, serif');
-  text('Lowest score takes the table', innerWidth / 2, 144, 13, colors.muted, 'center', 700);
+  const elapsed = Math.max(0, visualTime - sceneAnimationStart);
+  const reveal = reduceMotion ? 1 : easeOut(elapsed / 620);
+  drawCelebration(elapsed);
+  const winnerLift = reduceMotion ? 0 : Math.sin(visualTime / 240) * 4;
+  drawCrown(innerWidth / 2, 82, innerWidth < 500 ? 17 : 21, winnerLift);
+  ctx.save(); ctx.globalAlpha = reveal; ctx.translate(0, (1 - reveal) * 18);
+  text(`${ranked[0]?.name || 'Nobody'} wins!`, innerWidth / 2, 124, innerWidth < 500 ? 32 : 44, colors.ink, 'center', 900, 'Georgia, serif');
+  text('Fewest skulls. Finest play.', innerWidth / 2, 158, 13, colors.muted, 'center', 700);
+  ctx.restore();
   const panelW = Math.min(520, innerWidth - 32);
   const panelX = (innerWidth - panelW) / 2;
   ranked.forEach((player, i) => {
-    const y = 180 + i * 48;
-    roundedRect(panelX, y, panelW, 40, 11, i === 0 ? '#f5d982' : colors.cream, colors.ink, i === 0 ? 2 : 1);
+    const rowReveal = reduceMotion ? 1 : easeOut((elapsed - 260 - i * 85) / 420);
+    const y = 190 + i * 46;
+    ctx.save(); ctx.globalAlpha = rowReveal; ctx.translate((1 - rowReveal) * (i % 2 ? 28 : -28), 0);
+    if (i === 0) { ctx.shadowColor = 'rgba(245,166,35,.28)'; ctx.shadowBlur = 18; }
+    roundedRect(panelX, y, panelW, 38, 11, i === 0 ? '#f5d982' : colors.cream, colors.ink, i === 0 ? 2 : 1);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
     text(i === 0 ? '★' : `${i + 1}`, panelX + 24, y + 20, 14, i === 0 ? colors.red : colors.muted, 'center', 900);
     text(player.name, panelX + 48, y + 20, 14, colors.ink, 'left', 800);
     text(`${player.score} points`, panelX + panelW - 18, y + 20, 13, colors.ink, 'right', 900);
+    ctx.restore();
   });
-  if (state.you?.id === state.hostId) button('Play again', innerWidth / 2 - 90, Math.min(innerHeight - 72, 200 + ranked.length * 48), 180, 48, () => send('start'));
+  const actionY = Math.min(innerHeight - 70, 206 + ranked.length * 46);
+  if (state.you?.id === state.hostId) {
+    const actionW = Math.min(156, (innerWidth - 46) / 2);
+    button('Play again', innerWidth / 2 - actionW - 6, actionY, actionW, 46, () => send('start'));
+    button('Back to arcade', innerWidth / 2 + 6, actionY, actionW, 46, () => { leaveTarget = 'arcade'; leavePrompt = true; });
+  } else button('Back to arcade', innerWidth / 2 - 84, actionY, 168, 46, () => { leaveTarget = 'arcade'; leavePrompt = true; });
 }
 
 function drawLeavePrompt() {
@@ -475,11 +589,12 @@ function drawLeavePrompt() {
   const x = (innerWidth - w) / 2;
   const y = (innerHeight - h) / 2;
   roundedRect(x, y, w, h, 20, colors.cream, colors.ink, 2);
-  text('Leave this table?', innerWidth / 2, y + 48, 25, colors.ink, 'center', 900, 'Georgia, serif');
-  text(state.phase === 'playing' ? 'Your remaining cards will be auto-played.' : 'You can return to the table later.', innerWidth / 2, y + 82, 12, colors.muted, 'center', 650);
+  text(leaveTarget === 'arcade' ? 'Return to the arcade?' : 'Leave this table?', innerWidth / 2, y + 48, 25, colors.ink, 'center', 900, 'Georgia, serif');
+  const warning = state.phase === 'playing' ? 'Your remaining cards will be auto-played.' : leaveTarget === 'arcade' ? 'You will return to Decadence Inc.' : 'You can take another seat anytime.';
+  text(warning, innerWidth / 2, y + 82, 12, colors.muted, 'center', 650);
   const buttonW = (w - 46) / 2;
   button('Stay', x + 16, y + 132, buttonW, 48, () => { leavePrompt = false; });
-  button('Leave', x + 30 + buttonW, y + 132, buttonW, 48, leaveRoom);
+  button(leaveTarget === 'arcade' ? 'To arcade' : 'Leave', x + 30 + buttonW, y + 132, buttonW, 48, leaveRoom);
 }
 
 function render() {
@@ -525,7 +640,7 @@ window.render_game_to_text = () => {
     rows: (replay?.rows || state.rows).map((cards) => ({ cards, points: cards.reduce((sum, card) => sum + points(card), 0) })),
     rowChoice: state.rowChoice,
     resolution: replay ? { completed: replay.completed, total: resolutionReplay.events.length, active: replay.active, progress: replay.progress, done: replay.done } : null,
-    navigation: { canExit: state.phase !== 'join', leavePrompt },
+    navigation: { canExit: state.phase !== 'join', canReturnToArcade: true, leavePrompt, leaveTarget },
     guidance: state.phase === 'playing' ? { selectedCard: state.you?.selected, destinationRow: placementRow(state.you?.selected, state.rows), oversized: state.you?.selected !== null && placementRow(state.you?.selected, state.rows) === -1 } : null,
     lastEvents: state.lastEvents,
   });

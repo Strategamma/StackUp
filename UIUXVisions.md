@@ -9,3 +9,6 @@
 - Round transitions stay inline on the table: resolved rows, hands, and scores remain visible while the host gets a centered next-round action and guests receive a waiting toast.
 - Rules are available before and during play; first-time players see onboarding once, and tentative card selection previews the destination row or warns that a stack choice will be required.
 - Resolution replays authoritative events one at a time: cards travel to highlighted rows, scores increment after impact, and collected stacks trigger a red skull burst with an exact penalty label.
+- Decadence Arcade navigation is always obvious: direct on the join screen, confirmation-gated at an active table, and offered beside replay after the final score.
+- Joining explains the flow in three steps and uses a single name field; every table header exposes invite-link copying.
+- Premium motion adds card sheen, travel trails, safe-stack impact rings, and a crown/confetti/staged-rank victory sequence without changing game timing or rules.
