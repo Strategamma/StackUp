@@ -1,6 +1,7 @@
 # StackUp UI/UX
 
-- Warm paper-and-ink tabletop aesthetic with orange/red danger accents and green ready states.
+- Decadence-native dark arcade aesthetic: black grid, warm cream typography/cards, amber primary controls, red depth accents, green live/ready states, and restrained red ambient glow.
+- Headings are bold, condensed-feeling, uppercase, and editorial; panels are dark translucent surfaces with thin cream borders and modest corner radii.
 - Penalty values use compact vector skulls, not font glyphs, for consistent rendering across devices.
 - Motion communicates state: cards deal in, selected cards lift/bounce, locked avatars pulse, and selectable penalty rows breathe.
 - Keep motion subtle, phone-friendly, and respectful of `prefers-reduced-motion`.

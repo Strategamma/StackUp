@@ -2,6 +2,8 @@ Original prompt: Create an HTML game with upto 8 players join via local Wifi
 
 Current request: Integrate StackUp with decadenceinc.com, add navigation in and out, premium animations, a winning animation, richer card animation, and a more intuitive join flow.
 
+Current visual refresh: match the supplied decadenceinc.com design references across all StackUp UI while keeping mechanics unchanged. Target language: black grid, warm cream, amber CTA, vivid red depth, condensed editorial headings, subtle glow.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.
@@ -29,3 +31,5 @@ Current request: Integrate StackUp with decadenceinc.com, add navigation in and 
 - Added Decadence Arcade navigation, a clearer three-step join experience, invite-link sharing, premium card sheen/shadows, resolution trails and impact rings, animated winner ranking, crown/confetti celebration, and replay/arcade actions. Server rules remain unchanged; all 10 rule/integration tests and client syntax checks pass.
 - Playwright Chromium was installed to a temporary writable location and the required client was rerun, but macOS denied Chromium's Mach rendezvous process. Built-in browser access to localhost was also denied, so screenshot QA remains externally blocked; HTTP smoke checks and deterministic hooks remain healthy.
 - TODO: after deployment, manually inspect the join screen, compact table header, resolution trail, and final celebration on one phone and one desktop browser.
+- Applied Decadence visual language to the join/help UI and all canvas states without changing mechanics: black grid, warm cream type/cards, amber CTAs, red depth accents, green live/ready status, editorial uppercase headings, and dark translucent panels. Bumped the PWA cache to v5. Initial syntax and all 10 rule/integration tests pass.
+- Required Playwright rerun attempted after installing Chromium under `/tmp`; macOS denied Chromium's Mach rendezvous process before launch. The built-in browser was also explicitly denied localhost permission, so visual screenshot inspection remains host-blocked. HTTP asset smoke checks pass.

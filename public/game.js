@@ -10,7 +10,7 @@ const closeHelpButton = document.querySelector('#close-help');
 const toast = document.querySelector('#toast');
 const arcadeLink = document.querySelector('.arcade-link');
 
-const colors = { ink: '#17211f', paper: '#fff4d8', cream: '#fffdf8', red: '#d95536', orange: '#f5a623', green: '#397567', pale: '#e7ddbe', muted: '#6c817c' };
+const colors = { ink: '#11100f', paper: '#100f0e', cream: '#fff7e9', red: '#ff454d', orange: '#ffb33f', green: '#66efad', pale: '#3a3430', muted: '#b9aea6', line: 'rgba(255,247,233,.14)', panel: 'rgba(49,30,27,.82)' };
 let state = { phase: 'join', players: [], rows: [], you: null, turn: 0, maxTurns: 10, lastEvents: [] };
 let socket;
 let hitAreas = [];
@@ -189,7 +189,7 @@ function roundedRect(x, y, w, h, r, fill, stroke = null, line = 1) {
   if (stroke) { ctx.lineWidth = line; ctx.strokeStyle = stroke; ctx.stroke(); }
 }
 
-function text(value, x, y, size, color = colors.ink, align = 'left', weight = 700, family = 'Inter, system-ui, sans-serif') {
+function text(value, x, y, size, color = colors.cream, align = 'left', weight = 700, family = 'Arial, Helvetica, sans-serif') {
   ctx.fillStyle = color;
   ctx.font = `${weight} ${size}px ${family}`;
   ctx.textAlign = align;
@@ -282,10 +282,10 @@ function drawCard(card, x, y, w, h, selected = false, compact = false, entrance 
   const selectedPulse = selected && !reduceMotion ? 1 + Math.sin(visualTime / 120) * .018 : 1;
   ctx.scale(selectedPulse * (.92 + reveal * .08), selectedPulse * (.92 + reveal * .08));
   ctx.translate(-x - w / 2, -y - h / 2);
-  ctx.shadowColor = selected ? 'rgba(245,166,35,.42)' : 'rgba(23,33,31,.13)';
+  ctx.shadowColor = selected ? 'rgba(255,179,63,.5)' : 'rgba(0,0,0,.42)';
   ctx.shadowBlur = selected ? 18 : 5;
   ctx.shadowOffsetY = selected ? 7 : 3;
-  roundedRect(x, y, w, h, Math.min(12, w * .17), selected ? colors.orange : colors.cream, colors.ink, selected ? 3 : 1.5);
+  roundedRect(x, y, w, h, Math.min(12, w * .17), selected ? colors.orange : colors.cream, selected ? colors.orange : 'rgba(255,247,233,.62)', selected ? 3 : 1.5);
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   ctx.save();
   ctx.beginPath(); ctx.roundRect(x + 2, y + 2, w - 4, h - 4, Math.min(10, w * .14)); ctx.clip();
@@ -298,8 +298,8 @@ function drawCard(card, x, y, w, h, selected = false, compact = false, entrance 
   ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(x + 10, y + 7); ctx.lineTo(x + w - 10, y + 7); ctx.stroke();
-  text(card, x + w / 2, y + h * .43, compact ? Math.max(13, w * .32) : Math.max(18, w * .35), colors.ink, 'center', 900, 'Georgia, serif');
-  if (!compact && w >= 56) text(card, x + 9, y + 11, 8, colors.muted, 'center', 900, 'Georgia, serif');
+  text(card, x + w / 2, y + h * .43, compact ? Math.max(13, w * .32) : Math.max(18, w * .35), colors.ink, 'center', 900);
+  if (!compact && w >= 56) text(card, x + 9, y + 11, 8, '#6f625a', 'center', 900);
   const count = points(card);
   const skullSize = Math.min(4.8, w / (count * 1.75 + 1));
   const spacing = skullSize * 1.75;
@@ -312,30 +312,30 @@ function drawCard(card, x, y, w, h, selected = false, compact = false, entrance 
 }
 
 function button(label, x, y, w, h, onClick, active = true) {
-  roundedRect(x + 3, y + 4, w, h, 13, colors.ink);
-  roundedRect(x, y, w, h, 13, active ? colors.red : '#b8b5a7', colors.ink, 2);
-  text(label, x + w / 2, y + h / 2, 15, active ? '#fff' : '#e7e4d9', 'center', 900);
+  roundedRect(x + 5, y + 7, w, h, 8, active ? colors.red : '#2a2624');
+  roundedRect(x, y, w, h, 8, active ? colors.orange : '#393330', active ? colors.orange : '#554c47', 1.5);
+  text(label.toUpperCase(), x + w / 2, y + h / 2, 12, active ? colors.ink : '#817771', 'center', 900);
   if (active) hitAreas.push({ x, y, w, h, onClick });
 }
 
 function header(title, subtitle) {
   const compact = innerWidth < 560;
-  roundedRect(12, 10, compact ? 38 : 76, 34, 10, colors.cream, colors.ink, 1.5);
-  text(compact ? '◆' : '◆ Arcade', 12 + (compact ? 19 : 38), 27, compact ? 11 : 10, colors.ink, 'center', 900);
-  hitAreas.push({ x: 12, y: 10, w: compact ? 38 : 76, h: 34, onClick: () => { leaveTarget = 'arcade'; leavePrompt = true; } });
+  roundedRect(12, 10, compact ? 38 : 82, 34, 8, 'rgba(255,247,233,.06)', colors.line, 1);
+  text(compact ? 'D' : 'D  ARCADE', 12 + (compact ? 19 : 41), 27, compact ? 12 : 9, colors.cream, 'center', 900);
+  hitAreas.push({ x: 12, y: 10, w: compact ? 38 : 82, h: 34, onClick: () => { leaveTarget = 'arcade'; leavePrompt = true; } });
   const exitX = compact ? 56 : 94;
-  roundedRect(exitX, 10, compact ? 38 : 54, 34, 10, colors.cream, colors.ink, 1.5);
-  text(compact ? '×' : 'Exit', exitX + (compact ? 19 : 27), 27, compact ? 16 : 10, colors.ink, 'center', 900);
+  roundedRect(exitX, 10, compact ? 38 : 54, 34, 8, 'rgba(255,247,233,.06)', colors.line, 1);
+  text(compact ? '×' : 'EXIT', exitX + (compact ? 19 : 27), 27, compact ? 16 : 9, colors.cream, 'center', 900);
   hitAreas.push({ x: exitX, y: 10, w: compact ? 38 : 54, h: 34, onClick: () => { leaveTarget = 'home'; leavePrompt = true; } });
-  text(title, innerWidth / 2, 27, innerWidth < 500 ? 11 : 14, colors.ink, 'center', 900);
-  roundedRect(innerWidth - 46, 10, 34, 34, 10, colors.cream, colors.ink, 1.5);
-  text('?', innerWidth - 29, 27, 16, colors.ink, 'center', 900, 'Georgia, serif');
+  text(title, innerWidth / 2, 27, innerWidth < 500 ? 10 : 13, colors.cream, 'center', 900);
+  roundedRect(innerWidth - 46, 10, 34, 34, 8, 'rgba(255,247,233,.06)', colors.line, 1);
+  text('?', innerWidth - 29, 27, 15, colors.cream, 'center', 900);
   hitAreas.push({ x: innerWidth - 46, y: 10, w: 34, h: 34, onClick: showHelp });
-  roundedRect(innerWidth - 86, 10, 34, 34, 10, colors.cream, colors.ink, 1.5);
-  text('↗', innerWidth - 69, 27, 15, colors.ink, 'center', 900);
+  roundedRect(innerWidth - 86, 10, 34, 34, 8, 'rgba(255,247,233,.06)', colors.line, 1);
+  text('↗', innerWidth - 69, 27, 15, colors.cream, 'center', 900);
   hitAreas.push({ x: innerWidth - 86, y: 10, w: 34, h: 34, onClick: copyInviteLink });
   if (innerWidth >= 720) text(subtitle, innerWidth - 98, 27, 11, colors.muted, 'right', 800);
-  ctx.strokeStyle = '#d7cdaa'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(18, 50); ctx.lineTo(innerWidth - 18, 50); ctx.stroke();
+  ctx.strokeStyle = colors.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(18, 50); ctx.lineTo(innerWidth - 18, 50); ctx.stroke();
 }
 
 function drawLobby() {
@@ -343,16 +343,16 @@ function drawLobby() {
   const narrow = innerWidth < 600;
   const panelW = Math.min(600, innerWidth - 32);
   const panelX = (innerWidth - panelW) / 2;
-  text('Gather your crew', innerWidth / 2, 88, narrow ? 27 : 34, colors.ink, 'center', 900, 'Georgia, serif');
-  text('Everyone joins from the same network address', innerWidth / 2, 120, 12, colors.muted, 'center', 650);
-  roundedRect(panelX, 146, panelW, Math.min(innerHeight - 250, 390), 18, '#fffaf0', '#d7cdaa', 1.5);
+  text('GATHER YOUR CREW', innerWidth / 2, 88, narrow ? 25 : 34, colors.cream, 'center', 900);
+  text('Everyone joins from the same link', innerWidth / 2, 120, 12, colors.muted, 'center', 650);
+  roundedRect(panelX, 146, panelW, Math.min(innerHeight - 250, 390), 14, colors.panel, colors.line, 1.5);
   const rowH = Math.min(52, (Math.min(innerHeight - 265, 380) - 24) / 8);
   state.players.forEach((player, i) => {
     const y = 158 + i * rowH;
-    roundedRect(panelX + 12, y, panelW - 24, rowH - 7, 11, player.id === state.you?.id ? '#fce6b8' : colors.cream);
+    roundedRect(panelX + 12, y, panelW - 24, rowH - 7, 8, player.id === state.you?.id ? 'rgba(255,179,63,.18)' : 'rgba(255,247,233,.045)', player.id === state.you?.id ? 'rgba(255,179,63,.48)' : null);
     roundedRect(panelX + 23, y + 8, 28, 28, 9, i % 2 ? colors.green : colors.orange, colors.ink, 1.5);
     text(player.name.slice(0, 1).toUpperCase(), panelX + 37, y + 22, 13, i % 2 ? '#fff' : colors.ink, 'center', 900);
-    text(player.name + (player.isBot ? '  · BOT' : player.left ? '  · LEFT' : player.id === state.you?.id ? '  (you)' : ''), panelX + 62, y + 21, 14, colors.ink, 'left', 800);
+    text(player.name + (player.isBot ? '  · BOT' : player.left ? '  · LEFT' : player.id === state.you?.id ? '  (YOU)' : ''), panelX + 62, y + 21, 14, colors.cream, 'left', 800);
     if (player.id === state.hostId) text('HOST', panelX + panelW - 24, y + 21, 10, colors.red, 'right', 900);
   });
   if (!state.players.length) text('Waiting for players…', innerWidth / 2, 220, 15, colors.muted, 'center', 700);
@@ -433,7 +433,7 @@ function drawTable() {
     const avatarR = mobile ? 12 : 15;
     const readyPulse = player.ready && !reduceMotion ? 1 + Math.sin(visualTime / 180 + i) * .1 : 1;
     ctx.beginPath(); ctx.arc(x, playerY, avatarR * readyPulse, 0, Math.PI * 2); ctx.fillStyle = player.ready ? colors.green : colors.pale; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = colors.ink; ctx.stroke();
-    text(player.name.slice(0, 1).toUpperCase(), x, playerY, mobile ? 9 : 11, player.ready ? '#fff' : colors.ink, 'center', 900);
+    text(player.name.slice(0, 1).toUpperCase(), x, playerY, mobile ? 9 : 11, player.ready ? colors.ink : colors.cream, 'center', 900);
     const maxName = mobile ? 4 : 8;
     const shortName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
     text(`${shortName} · ${replayScore(player, replay)}`, x, playerY + (mobile ? 19 : 24), mobile ? 8 : 9, colors.muted, 'center', 800);
@@ -555,7 +555,7 @@ function drawFinished() {
   const winnerLift = reduceMotion ? 0 : Math.sin(visualTime / 240) * 4;
   drawCrown(innerWidth / 2, 82, innerWidth < 500 ? 17 : 21, winnerLift);
   ctx.save(); ctx.globalAlpha = reveal; ctx.translate(0, (1 - reveal) * 18);
-  text(`${ranked[0]?.name || 'Nobody'} wins!`, innerWidth / 2, 124, innerWidth < 500 ? 32 : 44, colors.ink, 'center', 900, 'Georgia, serif');
+  text(`${(ranked[0]?.name || 'Nobody').toUpperCase()} WINS!`, innerWidth / 2, 124, innerWidth < 500 ? 30 : 42, colors.cream, 'center', 900);
   text('Fewest skulls. Finest play.', innerWidth / 2, 158, 13, colors.muted, 'center', 700);
   ctx.restore();
   const panelW = Math.min(520, innerWidth - 32);
@@ -565,11 +565,11 @@ function drawFinished() {
     const y = 190 + i * 46;
     ctx.save(); ctx.globalAlpha = rowReveal; ctx.translate((1 - rowReveal) * (i % 2 ? 28 : -28), 0);
     if (i === 0) { ctx.shadowColor = 'rgba(245,166,35,.28)'; ctx.shadowBlur = 18; }
-    roundedRect(panelX, y, panelW, 38, 11, i === 0 ? '#f5d982' : colors.cream, colors.ink, i === 0 ? 2 : 1);
+    roundedRect(panelX, y, panelW, 38, 8, i === 0 ? colors.orange : 'rgba(255,247,233,.07)', i === 0 ? colors.orange : colors.line, i === 0 ? 2 : 1);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
     text(i === 0 ? '★' : `${i + 1}`, panelX + 24, y + 20, 14, i === 0 ? colors.red : colors.muted, 'center', 900);
-    text(player.name, panelX + 48, y + 20, 14, colors.ink, 'left', 800);
-    text(`${player.score} points`, panelX + panelW - 18, y + 20, 13, colors.ink, 'right', 900);
+    text(player.name, panelX + 48, y + 20, 14, i === 0 ? colors.ink : colors.cream, 'left', 800);
+    text(`${player.score} points`, panelX + panelW - 18, y + 20, 13, i === 0 ? colors.ink : colors.cream, 'right', 900);
     ctx.restore();
   });
   const actionY = Math.min(innerHeight - 70, 206 + ranked.length * 46);
@@ -582,14 +582,14 @@ function drawFinished() {
 
 function drawLeavePrompt() {
   hitAreas.push({ x: 0, y: 0, w: innerWidth, h: innerHeight, onClick: () => {} });
-  ctx.fillStyle = 'rgba(23,33,31,.56)';
+  ctx.fillStyle = 'rgba(0,0,0,.72)';
   ctx.fillRect(0, 0, innerWidth, innerHeight);
   const w = Math.min(360, innerWidth - 32);
   const h = 210;
   const x = (innerWidth - w) / 2;
   const y = (innerHeight - h) / 2;
-  roundedRect(x, y, w, h, 20, colors.cream, colors.ink, 2);
-  text(leaveTarget === 'arcade' ? 'Return to the arcade?' : 'Leave this table?', innerWidth / 2, y + 48, 25, colors.ink, 'center', 900, 'Georgia, serif');
+  roundedRect(x, y, w, h, 14, '#211b19', colors.line, 1.5);
+  text(leaveTarget === 'arcade' ? 'RETURN TO THE ARCADE?' : 'LEAVE THIS TABLE?', innerWidth / 2, y + 48, 20, colors.cream, 'center', 900);
   const warning = state.phase === 'playing' ? 'Your remaining cards will be auto-played.' : leaveTarget === 'arcade' ? 'You will return to Decadence Inc.' : 'You can take another seat anytime.';
   text(warning, innerWidth / 2, y + 82, 12, colors.muted, 'center', 650);
   const buttonW = (w - 46) / 2;
@@ -602,9 +602,12 @@ function render() {
   ctx.clearRect(0, 0, innerWidth, innerHeight);
   ctx.fillStyle = colors.paper;
   ctx.fillRect(0, 0, innerWidth, innerHeight);
-  ctx.fillStyle = 'rgba(245,166,35,.06)';
-  const drift = reduceMotion ? 0 : (visualTime / 90) % 42;
-  for (let x = -innerHeight - 42 + drift; x < innerWidth; x += 42) { ctx.save(); ctx.translate(x, 0); ctx.rotate(-.35); ctx.fillRect(0, 0, 10, innerHeight * 1.3); ctx.restore(); }
+  const glow = ctx.createRadialGradient(innerWidth * .72, innerHeight * .22, 0, innerWidth * .72, innerHeight * .22, Math.max(innerWidth, innerHeight) * .7);
+  glow.addColorStop(0, 'rgba(142,36,30,.28)'); glow.addColorStop(.46, 'rgba(69,26,22,.10)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, innerWidth, innerHeight);
+  ctx.strokeStyle = 'rgba(255,247,233,.055)'; ctx.lineWidth = 1;
+  for (let x = 0; x < innerWidth; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, innerHeight); ctx.stroke(); }
+  for (let y = 0; y < innerHeight; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(innerWidth, y); ctx.stroke(); }
   if (state.phase === 'lobby') drawLobby();
   if (state.phase === 'playing' || state.phase === 'roundEnd') drawTable();
   if (state.phase === 'finished') {

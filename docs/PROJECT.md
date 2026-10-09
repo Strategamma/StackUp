@@ -35,3 +35,4 @@ Browser-based local-Wi-Fi card game for 2–8 players, inspired by simultaneous-
 - Clients retain the pre-resolution rows and replay the server event log highest-to-lowest; this is presentation only and never changes authoritative state.
 - StackUp is linked bidirectionally with `https://decadenceinc.com`: the join screen returns directly to the arcade, while active tables confirm before leaving and release/auto-play the player's seat correctly.
 - The client presentation includes card sheen and impact motion plus a crown, confetti, and staged leaderboard reveal at game end; reduced-motion users receive the same information without decorative movement.
+- UI follows decadenceinc.com's arcade language: near-black grid backdrop, cream editorial typography/cards, amber primary actions, red depth accents, green ready/live states, and dark translucent panels.

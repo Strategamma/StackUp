@@ -1,7 +1,7 @@
 # Current task
 
-- Goal: integrate StackUp with Decadence Inc. and make its entry, play feedback, and victory presentation feel premium.
-- Scope: arcade navigation, join guidance, invite sharing, card polish, resolution impact, and winner celebration.
-- Approach: preserve server-authoritative rules; enhance the existing DOM entry screen and deterministic canvas renderer.
-- Risks: navigation during live games, animation density on phones, reduced-motion accessibility, and overlays blocking taps.
-- Verification: client syntax, rule/integration tests, deterministic state output, join/lobby/game/victory interaction checks, screenshots, and console errors.
+- Goal: make StackUp visually native to decadenceinc.com while preserving game mechanics.
+- Scope: entry/help DOM and every canvas-rendered state; no server or rules changes.
+- Approach: apply the site's black grid, cream typography, amber controls, red depth accents, restrained glow, and squared editorial surfaces.
+- Risks: contrast, dense phone layouts, canvas text fitting, and stale service-worker assets.
+- Verification: syntax/tests, deterministic state output, Playwright join/lobby/game interactions, desktop/mobile screenshots, and console errors.
