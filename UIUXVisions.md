@@ -20,3 +20,5 @@
 - Lobby hosts get a compact remove control on every non-host seat, followed by a confirmation dialog for protection against accidental taps.
 - Status copy should answer “what happened?” or “what do I do next?”; prefer in-context table guidance over transient toast notifications.
 - The final leaderboard doubles as the table-session scoreboard: current score plus wins/games, with personal bests, table wins, flawless wins, and win streaks as restrained achievement callouts.
+- Keep only one active-game escape hatch (D Arcade) and confirmation-gate it; redundant exits encourage accidental session churn.
+- Derive table card scale from remaining viewport height after reserving the header, guidance, action, and hand bands. Guidance must fit its lane rather than overlap cards.

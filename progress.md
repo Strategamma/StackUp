@@ -10,6 +10,8 @@ Current lobby/safety pass: expose the dangerous sixth row slot with an X on all 
 
 Current messaging/achievement pass: replace vague status copy with exact next actions and add a table-session record across replayed games, including wins, best score, streaks, and restrained end-game achievement callouts.
 
+Current layout pass: remove the redundant Exit control, keep D Arcade as the only deliberate leave action, and derive row/card geometry from reserved vertical bands so guidance and actions cannot overlap table or hand cards.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.
@@ -45,3 +47,5 @@ Current messaging/achievement pass: replace vague status copy with exact next ac
 - Verification: 11 rule/integration tests pass, including non-host denial, bot removal, guest kick notification, freed-seat broadcast, and fresh rejoin identity. Client/server/service-worker syntax checks pass. Playwright was rerun but macOS again denied Chromium's Mach rendezvous process before capture.
 - Reworked information copy around explicit next actions, player counts, selected-card consequences, clean turns, and resolution outcomes; removed the redundant next-round toast. Added table-session games/wins/best/average/streak tracking across replays plus end-game achievements (personal best, table win, flawless win, streak) and compact W/G records on the final leaderboard.
 - Verification: session recording is idempotent, tied/current winners are supported, replay streaks and personal bests are covered, and the text-state hook exposes session standings. Twelve rule/integration tests pass. Playwright was attempted again but remains blocked by the host's macOS Chromium permission.
+- Removed the redundant active-game Exit control; D Arcade is now the sole confirmation-gated departure. Replaced independent row sizing with height-aware card scaling and reserved table/guidance/action/hand bands; long guidance text now shrinks to fit its lane.
+- Verification: all 12 tests and syntax checks pass. At the supplied screenshot proportions, the new calculation ends the fourth row before the guidance band, places Lock In below guidance, and starts the hand below the action. Playwright remains blocked by macOS Chromium permission before capture.

@@ -195,6 +195,16 @@ function text(value, x, y, size, color = colors.cream, align = 'left', weight = 
   ctx.fillText(value, x, y);
 }
 
+function fitText(value, x, y, maxWidth, size, minSize, color = colors.cream, align = 'center', weight = 700) {
+  let fittedSize = size;
+  ctx.font = `${weight} ${fittedSize}px Arial, Helvetica, sans-serif`;
+  while (fittedSize > minSize && ctx.measureText(value).width > maxWidth) {
+    fittedSize -= 1;
+    ctx.font = `${weight} ${fittedSize}px Arial, Helvetica, sans-serif`;
+  }
+  text(value, x, y, fittedSize, color, align, weight);
+}
+
 function points(card) {
   if (card === 55) return 7;
   if (card % 11 === 0) return 5;
@@ -349,8 +359,6 @@ function removeSeatControl(x, y, player) {
 function header(title, subtitle) {
   const compact = innerWidth < 560;
   headerControl(compact ? 'D' : 'D  ARCADE', 12, 10, compact ? 38 : 82, 34, () => { leaveTarget = 'arcade'; leavePrompt = true; }, compact ? 12 : 9);
-  const exitX = compact ? 56 : 94;
-  headerControl(compact ? '×' : 'EXIT', exitX, 10, compact ? 38 : 54, 34, () => { leaveTarget = 'home'; leavePrompt = true; }, compact ? 16 : 9);
   text(title, innerWidth / 2, 27, innerWidth < 500 ? 10 : 13, colors.cream, 'center', 900);
   headerControl('?', innerWidth - 46, 10, 34, 34, showHelp, 15);
   headerControl('↗', innerWidth - 86, 10, 34, 34, copyInviteLink, 15);
@@ -471,11 +479,14 @@ function drawTable() {
   const handRowGap = mobile ? handH + 7 : 0;
   const handBaseY = mobile ? innerHeight - handRows * handRowGap - 8 : innerHeight - 122;
   const top = mobile ? 116 : 138;
-  const available = mobile ? Math.max(190, handBaseY - top - 28) : Math.min(innerHeight * .47, innerHeight - 275);
-  const rowH = available / 4;
+  const footerReserve = mobile ? 112 : 122;
+  const tableBottom = handBaseY - footerReserve;
   const maxCardsW = Math.min(innerWidth - 40, 650);
-  const cardW = Math.min(mobile ? 40 : 58, (maxCardsW - 30) / 6);
+  const widthCardW = Math.min(mobile ? 40 : 58, (maxCardsW - 30) / 6);
+  const verticalCardH = Math.max(34, (tableBottom - top - 18) / 4);
+  const cardW = Math.min(widthCardW, verticalCardH / 1.28);
   const cardH = cardW * 1.28;
+  const rowH = Math.max(cardH + 6, (tableBottom - top - cardH) / 3);
   const previewRow = !betweenRounds && !state.you?.locked ? placementRow(state.you?.selected, tableRows) : null;
   tableRows.forEach((row, rowIndex) => {
     const y = top + rowIndex * rowH;
@@ -538,8 +549,8 @@ function drawTable() {
             ? `${selectedCard} SELECTED · LOCK IN WHEN READY`
             : 'PICK A CARD · CHANGE IT ANYTIME BEFORE LOCKING IN';
   const hasAction = !betweenRounds && !state.you?.locked && !state.rowChoice;
-  const guidanceY = betweenRounds ? handY - 61 : handY - (hasAction ? (mobile ? 91 : 99) : 28);
-  text(choiceLabel, innerWidth / 2, guidanceY, 10, betweenRounds ? colors.red : state.you?.locked ? colors.green : colors.muted, 'center', 900);
+  const guidanceY = betweenRounds ? handY - 61 : handY - (hasAction ? (mobile ? 98 : 104) : 28);
+  fitText(choiceLabel, innerWidth / 2, guidanceY, innerWidth - 32, 10, 7, betweenRounds ? colors.red : state.you?.locked ? colors.green : colors.muted, 'center', 900);
   hand.forEach((card, index) => {
     const handRow = mobile ? Math.floor(index / 5) : 0;
     const handColumn = mobile ? index % 5 : index;
@@ -559,7 +570,7 @@ function drawTable() {
     text('NEXT ROUND STARTING…', innerWidth / 2, handY - 28, 9, colors.orange, 'center', 900);
   } else if (!state.you?.locked && !state.rowChoice) {
     const lockW = mobile ? 92 : 110;
-    button('Lock in', innerWidth / 2 - lockW / 2, handY - 72, lockW, 38, () => send('confirm'), state.you?.selected !== null);
+    button('Lock in', innerWidth / 2 - lockW / 2, handY - 76, lockW, 38, () => send('confirm'), state.you?.selected !== null);
   }
 }
 
@@ -734,7 +745,7 @@ window.render_game_to_text = () => {
     rows: (replay?.rows || state.rows).map((cards) => ({ cards, points: cards.reduce((sum, card) => sum + points(card), 0) })),
     rowChoice: state.rowChoice,
     resolution: replay ? { completed: replay.completed, total: resolutionReplay.events.length, active: replay.active, progress: replay.progress, done: replay.done } : null,
-    navigation: { canExit: state.phase !== 'join', canReturnToArcade: true, leavePrompt, leaveTarget },
+    navigation: { canReturnToArcade: true, leavePrompt, leaveTarget },
     lobbyManagement: state.phase === 'lobby' ? { canManage: state.you?.id === state.hostId, removablePlayerIds: state.players.filter((player) => player.id !== state.hostId).map((player) => player.id), pendingRemovalId: removePromptPlayer?.id || null } : null,
     guidance: state.phase === 'playing' ? { selectedCard: state.you?.selected, destinationRow: placementRow(state.you?.selected, state.rows), oversized: state.you?.selected !== null && placementRow(state.you?.selected, state.rows) === -1 } : null,
     lastEvents: state.lastEvents,

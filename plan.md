@@ -1,7 +1,7 @@
 # Current task
 
-- Goal: make information messages actionable and give the table a persistent session scoreboard.
-- Scope: connection/lobby/selection/resolution copy plus session games, wins, best score, streak, and end-game achievements.
-- Approach: prefer contextual canvas guidance over extra toasts; retain session stats on each seat across replays; surface compact records on the final leaderboard.
-- Risks: duplicate game recording, tied winners, scoreboard density with eight players, and stats surviving replay without surviving a new empty table.
-- Verification: unit/integration coverage for one game and replay stats, syntax checks, deterministic state output, and Playwright attempt.
+- Goal: remove redundant game navigation and prevent guidance/action text from colliding with cards.
+- Scope: active-screen header and responsive table geometry only; no rules or server changes.
+- Approach: keep D Arcade as the sole confirmed exit; derive table card size/row spacing from the vertical space remaining after reserving dedicated guidance, action, and hand bands; fit long guidance to width.
+- Risks: very short phone viewports, card legibility after vertical scaling, resolution travel targeting, and layout jumps between selection states.
+- Verification: syntax/tests, deterministic state, Playwright attempt, screenshot-based geometry review, and source assertions for reserved bands.
