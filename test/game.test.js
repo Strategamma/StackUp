@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { WebSocket } = require('ws');
-const { cardPoints, chooseRow, resolveSelections, placeCard, selectForDisconnectedPlayers, createGame, startGame, recordSessionGame } = require('../server');
+const { cardPoints, chooseRow, chooseBotCard, resolveSelections, placeCard, selectForDisconnectedPlayers, createGame, startGame, recordSessionGame } = require('../server');
 
 test('penalty points follow the deck markings', () => {
   assert.equal(cardPoints(55), 7);
@@ -49,6 +49,22 @@ test('disconnected players automatically choose their lowest card', () => {
   assert.equal(game.players[0].selected, 9);
   assert.equal(game.players[0].locked, true);
   assert.equal(game.players[1].selected, null);
+});
+
+test('bots favor a tight safe placement over a lower exposed card', () => {
+  assert.equal(chooseBotCard([13, 64], [[20], [65], [80], [90]]), 64);
+});
+
+test('bots can shed 104 when taking a cheap row', () => {
+  assert.equal(chooseBotCard([13, 104], [[20], [45], [70], [90]]), 104);
+});
+
+test('bots play 103 beneath 104 without taking a row', () => {
+  assert.equal(chooseBotCard([13, 103], [[20], [45], [70], [104]]), 103);
+});
+
+test('bots avoid collecting an expensive full row', () => {
+  assert.equal(chooseBotCard([64, 103], [[65, 55, 44, 33, 22], [90], [100], [104]]), 103);
 });
 
 test('an oversized card pauses resolution until its player chooses a row', () => {

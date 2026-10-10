@@ -54,6 +54,19 @@ function chooseRow(rows, card) {
   }, { index: 0, points: Infinity }).index;
 }
 
+function chooseBotCard(hand, rows) {
+  return hand.reduce((best, card) => {
+    const row = rows[chooseRow(rows, card)];
+    const end = row[row.length - 1];
+    const takesRow = card > Math.max(...rows.map((candidate) => candidate[candidate.length - 1])) || row.length === 5;
+    const points = takesRow ? row.reduce((sum, value) => sum + cardPoints(value), 0) : 0;
+    // A narrow gap is harder for another player's higher card to disrupt.
+    const risk = takesRow ? 0 : (end - card) * 0.5 + row.length * 1.5;
+    const score = points * 12 + risk - card * 0.3;
+    return score < best.score ? { card, score } : best;
+  }, { card: hand[0], score: Infinity }).card;
+}
+
 function resolveSelections(game) {
   if (!game.resolving) {
     game.resolving = true;
@@ -128,7 +141,7 @@ function selectForDisconnectedPlayers(game) {
   for (const player of game.players) {
     const connected = player.ws && player.ws.readyState === WebSocket.OPEN;
     if ((player.isBot || !connected) && !player.locked && player.hand.length) {
-      player.selected = player.hand[0];
+      player.selected = player.isBot ? chooseBotCard(player.hand, game.rows) : player.hand[0];
       player.locked = true;
     }
   }
@@ -369,4 +382,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { cardPoints, chooseRow, resolveSelections, placeCard, selectForDisconnectedPlayers, createGame, startGame, recordSessionGame, server };
+module.exports = { cardPoints, chooseRow, chooseBotCard, resolveSelections, placeCard, selectForDisconnectedPlayers, createGame, startGame, recordSessionGame, server };

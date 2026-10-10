@@ -25,8 +25,8 @@ Browser-based local-Wi-Fi card game for 2–8 players, inspired by simultaneous-
 - Keep rules and validation authoritative in `server.js`; clients only send intents.
 - `public/game.js` exposes `render_game_to_text()` and `advanceTime(ms)` for deterministic QA.
 - Reconnect identity is stored in browser local storage.
-- Players leaving before a game free their seat and transfer host status; disconnected players auto-play their lowest remaining card so an active game cannot deadlock.
-- A host can fill empty seats with simple bots, allowing immediate solo play and mixed human/bot tables.
+- Players leaving before a game free their seat and transfer host status; disconnected humans auto-play their lowest remaining card so an active game cannot deadlock.
+- A host can fill empty seats with bots for solo or mixed tables. Bots score each playable card by immediate row penalty, placement gap, row length, and the value of shedding high cards.
 - Before a game starts, the host can remove any non-host bot or human seat; human reconnect tokens are invalidated so removed seats are genuinely freed.
 - Browser tokens reclaim a player's reserved seat after lobby or gameplay disconnects; confirmed Arcade departure permanently releases it.
 - Turn input is two-step: players may select, switch, or deselect a card until pressing **Lock in**; only locked choices count as ready.

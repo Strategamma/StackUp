@@ -1,7 +1,7 @@
 # Current task
 
-- Goal: remove redundant game navigation and prevent guidance/action text from colliding with cards.
-- Scope: active-screen header and responsive table geometry only; no rules or server changes.
-- Approach: keep D Arcade as the sole confirmed exit; derive table card size/row spacing from the vertical space remaining after reserving dedicated guidance, action, and hand bands; fit long guidance to width.
-- Risks: very short phone viewports, card legibility after vertical scaling, resolution travel targeting, and layout jumps between selection states.
-- Verification: syntax/tests, deterministic state, Playwright attempt, screenshot-based geometry review, and source assertions for reserved bands.
+- Goal: make bots choose cards by safety and penalty instead of always playing the lowest.
+- Scope: server bot selection and focused rule tests; preserve disconnected human fallback.
+- Approach: score each card against current rows using immediate penalty, gap and row length risk, and the value of shedding a high card. Prefer the lowest score.
+- Risks: simultaneous plays can change rows before a bot resolves; use a heuristic rather than assuming known opponent cards.
+- Verification: targeted card-choice cases and full test suite.
