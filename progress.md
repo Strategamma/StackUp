@@ -6,6 +6,10 @@ Current visual refresh: match the supplied decadenceinc.com design references ac
 
 Current polish pass: audit every interactive element for hover/press/focus feedback; reduce table contrast with beige cards and typography, red skulls, and a softer charcoal/red background.
 
+Current lobby/safety pass: expose the dangerous sixth row slot with an X on all viewports, restore visible mobile slot borders, and let the host remove bots or guests before starting.
+
+Current messaging/achievement pass: replace vague status copy with exact next actions and add a table-session record across replayed games, including wins, best score, streaks, and restrained end-game achievement callouts.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.
@@ -37,3 +41,7 @@ Current polish pass: audit every interactive element for hover/press/focus feedb
 - Required Playwright rerun attempted after installing Chromium under `/tmp`; macOS denied Chromium's Mach rendezvous process before launch. The built-in browser was also explicitly denied localhost permission, so visual screenshot inspection remains host-blocked. HTTP asset smoke checks pass.
 - Added canvas hover/press motion for buttons, header controls, selectable cards, and row choices; strengthened DOM hover/focus/press feedback; changed cards to beige and all skulls to red; softened table text/background contrast. Re-centered desktop rows around all six slots, separated guidance/action/hand zones, and moved toast feedback below the header.
 - Round-end progression now advances automatically from the authoritative server after the resolution animation plus a short reading pause; guests receive passive status instead of waiting on a manual host button.
+- Added six visible row slots on desktop and mobile with a red X on the penalty slot, strengthened dark card outlines, and updated onboarding language. Hosts can remove bots or human guests from the lobby through a confirmation dialog; the server validates host/lobby scope and invalidates removed reconnect tokens.
+- Verification: 11 rule/integration tests pass, including non-host denial, bot removal, guest kick notification, freed-seat broadcast, and fresh rejoin identity. Client/server/service-worker syntax checks pass. Playwright was rerun but macOS again denied Chromium's Mach rendezvous process before capture.
+- Reworked information copy around explicit next actions, player counts, selected-card consequences, clean turns, and resolution outcomes; removed the redundant next-round toast. Added table-session games/wins/best/average/streak tracking across replays plus end-game achievements (personal best, table win, flawless win, streak) and compact W/G records on the final leaderboard.
+- Verification: session recording is idempotent, tied/current winners are supported, replay streaks and personal bests are covered, and the text-state hook exposes session standings. Twelve rule/integration tests pass. Playwright was attempted again but remains blocked by the host's macOS Chromium permission.

@@ -16,3 +16,7 @@
 - Interactive elements consistently lift on hover, compress on press, expose a visible focus state, and keep equivalent tap behavior on touch devices.
 - Gameplay favors warm beige cards and labels over stark white, with red skulls at every penalty value and a restrained charcoal/red table glow.
 - Round summaries remain visible through the resolution replay and a short reading pause, then the authoritative server advances automatically without a host click.
+- Always show six outlined row slots, including on phones; mark the dangerous sixth slot with a red X instead of relying on rules text alone.
+- Lobby hosts get a compact remove control on every non-host seat, followed by a confirmation dialog for protection against accidental taps.
+- Status copy should answer “what happened?” or “what do I do next?”; prefer in-context table guidance over transient toast notifications.
+- The final leaderboard doubles as the table-session scoreboard: current score plus wins/games, with personal bests, table wins, flawless wins, and win streaks as restrained achievement callouts.

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { WebSocket } = require('ws');
-const { cardPoints, chooseRow, resolveSelections, placeCard, selectForDisconnectedPlayers, createGame, startGame } = require('../server');
+const { cardPoints, chooseRow, resolveSelections, placeCard, selectForDisconnectedPlayers, createGame, startGame, recordSessionGame } = require('../server');
 
 test('penalty points follow the deck markings', () => {
   assert.equal(cardPoints(55), 7);
@@ -65,4 +65,28 @@ test('an oversized card pauses resolution until its player chooses a row', () =>
   assert.equal(resolveSelections(game), true);
   assert.deepEqual(game.rows[2], [97]);
   assert.equal(player.score, 5);
+});
+
+test('session records wins, best scores, streaks, and each game only once', () => {
+  const game = createGame();
+  game.gameNumber = 1;
+  game.players = [
+    { name: 'A', score: 0 },
+    { name: 'B', score: 8 },
+  ];
+  recordSessionGame(game);
+  recordSessionGame(game);
+  assert.deepEqual(game.players[0].session, { games: 1, wins: 1, best: 0, total: 0, streak: 1, bestStreak: 1, lastAchievement: 'FLAWLESS WIN' });
+  assert.equal(game.players[1].session.lastAchievement, '');
+
+  game.gameNumber = 2;
+  game.players[0].score = 3;
+  game.players[1].score = 7;
+  recordSessionGame(game);
+  assert.equal(game.players[0].session.wins, 2);
+  assert.equal(game.players[0].session.streak, 2);
+  assert.equal(game.players[0].session.lastAchievement, '2-WIN STREAK');
+  assert.equal(game.players[1].session.games, 2);
+  assert.equal(game.players[1].session.best, 7);
+  assert.equal(game.players[1].session.lastAchievement, 'PERSONAL BEST');
 });

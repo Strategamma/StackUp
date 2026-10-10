@@ -17,6 +17,7 @@ let hitAreas = [];
 let toastTimer;
 let leavePrompt = false;
 let leaveTarget = 'home';
+let removePromptPlayer = null;
 let manualClose = false;
 let visualTime = performance.now();
 let sceneAnimationStart = visualTime;
@@ -26,7 +27,6 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const RESOLUTION_STEP_MS = reduceMotion ? 180 : 850;
 let resolutionReplay = null;
 let resolutionBaseRows = null;
-let waitingToastTimer;
 let displayName = localStorage.getItem('stackup-name') || '';
 nameInput.value = displayName;
 
@@ -77,7 +77,7 @@ function connect(name) {
     if (message.type === 'joined') {
       localStorage.setItem('stackup-token', message.token);
       hideJoinPanel();
-      showToast('Joined the table');
+      showToast('Seat claimed — invite your crew');
       if (!localStorage.getItem('stackup-seen-rules')) showHelp();
     }
     if (message.type === 'state') {
@@ -96,17 +96,13 @@ function connect(name) {
       if (message.state.phase === 'playing' && state.phase === 'roundEnd') resolutionReplay = null;
       if (message.state.phase !== state.phase || message.state.turn !== state.turn || message.state.rowChoice?.playerId !== state.rowChoice?.playerId) sceneAnimationStart = now;
       if (message.state.you?.selected !== state.you?.selected) selectionAnimationStart = now;
-      const enteredRoundEnd = message.state.phase === 'roundEnd' && state.phase !== 'roundEnd';
       state = message.state;
+      if (removePromptPlayer && !state.players.some((player) => player.id === removePromptPlayer.id)) removePromptPlayer = null;
       hideJoinPanel();
-      clearTimeout(waitingToastTimer);
-      if (enteredRoundEnd && state.you?.id !== state.hostId) {
-        const delay = resolutionReplay ? resolutionReplay.events.length * RESOLUTION_STEP_MS + 250 : 250;
-        waitingToastTimer = setTimeout(() => { if (state.phase === 'roundEnd') showToast('Next round starting shortly'); }, delay);
-      }
       render();
     }
     if (message.type === 'left') finishLeave();
+    if (message.type === 'kicked') returnToHome(message.message || 'The host removed you from the lobby.');
     if (message.type === 'error') showToast(message.message);
   });
   socket.addEventListener('close', () => {
@@ -131,16 +127,17 @@ function send(type, extra = {}) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type, ...extra }));
 }
 
-function returnToHome() {
+function returnToHome(feedback = 'You left the table') {
   manualClose = true;
   leavePrompt = false;
+  removePromptPlayer = null;
   localStorage.removeItem('stackup-token');
   if (socket?.readyState === WebSocket.OPEN) socket.close();
   state = { phase: 'join', players: [], rows: [], you: null, turn: 0, maxTurns: 10, lastEvents: [] };
   joinPanel.classList.remove('joining');
   joinPanel.classList.remove('hidden');
   arcadeLink.hidden = false;
-  showToast('You left the table');
+  showToast(feedback);
   render();
 }
 
@@ -289,7 +286,7 @@ function drawCard(card, x, y, w, h, selected = false, compact = false, entrance 
   ctx.shadowColor = selected ? 'rgba(255,179,63,.5)' : 'rgba(0,0,0,.42)';
   ctx.shadowBlur = selected ? 18 : 5;
   ctx.shadowOffsetY = selected ? 7 : 3;
-  roundedRect(x, y, w, h, Math.min(12, w * .17), selected ? colors.orange : hovered ? '#edcd99' : colors.card, selected ? colors.orange : hovered ? 'rgba(244,173,62,.9)' : 'rgba(239,221,191,.42)', selected || hovered ? 2.5 : 1.25);
+  roundedRect(x, y, w, h, Math.min(12, w * .17), selected ? colors.orange : hovered ? '#edcd99' : colors.card, selected ? colors.orange : hovered ? 'rgba(244,173,62,.9)' : '#624b39', selected || hovered ? 2.5 : 1.5);
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   ctx.save();
   ctx.beginPath(); ctx.roundRect(x + 2, y + 2, w - 4, h - 4, Math.min(10, w * .14)); ctx.clip();
@@ -339,6 +336,16 @@ function headerControl(label, x, y, w, h, onClick, size = 10) {
   hitAreas.push({ x, y, w, h, onClick });
 }
 
+function removeSeatControl(x, y, player) {
+  const size = 28;
+  const hovered = contains(x, y, size, size);
+  const pressed = hovered && pointerState.down;
+  const offset = reduceMotion ? 0 : pressed ? 2 : hovered ? -2 : 0;
+  roundedRect(x, y + offset, size, size, 8, hovered ? 'rgba(239,70,80,.24)' : 'rgba(239,70,80,.08)', hovered ? colors.red : 'rgba(239,70,80,.38)', hovered ? 1.5 : 1);
+  text('×', x + size / 2, y + size / 2 + offset - 1, 17, hovered ? '#ff7880' : colors.red, 'center', 900);
+  hitAreas.push({ x, y, w: size, h: size, onClick: () => { removePromptPlayer = player; } });
+}
+
 function header(title, subtitle) {
   const compact = innerWidth < 560;
   headerControl(compact ? 'D' : 'D  ARCADE', 12, 10, compact ? 38 : 82, 34, () => { leaveTarget = 'arcade'; leavePrompt = true; }, compact ? 12 : 9);
@@ -360,16 +367,19 @@ function drawLobby() {
   text('Everyone joins from the same link', innerWidth / 2, 120, 12, colors.muted, 'center', 650);
   roundedRect(panelX, 146, panelW, Math.min(innerHeight - 250, 390), 14, colors.panel, colors.line, 1.5);
   const rowH = Math.min(52, (Math.min(innerHeight - 265, 380) - 24) / 8);
+  const isHost = state.you?.id === state.hostId;
   state.players.forEach((player, i) => {
     const y = 158 + i * rowH;
     roundedRect(panelX + 12, y, panelW - 24, rowH - 7, 8, player.id === state.you?.id ? 'rgba(255,179,63,.18)' : 'rgba(255,247,233,.045)', player.id === state.you?.id ? 'rgba(255,179,63,.48)' : null);
     roundedRect(panelX + 23, y + 8, 28, 28, 9, i % 2 ? colors.green : colors.orange, colors.ink, 1.5);
     text(player.name.slice(0, 1).toUpperCase(), panelX + 37, y + 22, 13, i % 2 ? '#fff' : colors.ink, 'center', 900);
-    text(player.name + (player.isBot ? '  · BOT' : player.left ? '  · LEFT' : player.id === state.you?.id ? '  (YOU)' : ''), panelX + 62, y + 21, 14, colors.cream, 'left', 800);
+    const maxName = narrow ? 13 : 18;
+    const displayName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
+    text(displayName + (player.isBot ? '  · BOT' : player.left ? '  · LEFT' : player.id === state.you?.id ? '  (YOU)' : ''), panelX + 62, y + 21, 14, colors.cream, 'left', 800);
     if (player.id === state.hostId) text('HOST', panelX + panelW - 24, y + 21, 10, colors.red, 'right', 900);
+    else if (isHost) removeSeatControl(panelX + panelW - 52, y + 7, player);
   });
   if (!state.players.length) text('Waiting for players…', innerWidth / 2, 220, 15, colors.muted, 'center', 700);
-  const isHost = state.you?.id === state.hostId;
   if (isHost) {
     const gap = 10;
     const buttonW = Math.min(180, (innerWidth - 42 - gap) / 2);
@@ -385,7 +395,7 @@ function drawResolutionCard(replay, tableRows, top, rowH, cardW, cardH) {
   const event = replay.active;
   const travel = easeOut(Math.min(1, replay.progress / .72));
   const destinationLength = event.taken.length ? 1 : tableRows[event.row].length + 1;
-  const destinationSlots = innerWidth < 650 ? destinationLength : 6;
+  const destinationSlots = 6;
   const destinationWidth = destinationSlots * (cardW + 5) - 5;
   const targetX = (innerWidth - destinationWidth) / 2 + (destinationLength - 1) * (cardW + 5);
   const targetY = top + event.row * rowH;
@@ -469,7 +479,7 @@ function drawTable() {
   const previewRow = !betweenRounds && !state.you?.locked ? placementRow(state.you?.selected, tableRows) : null;
   tableRows.forEach((row, rowIndex) => {
     const y = top + rowIndex * rowH;
-    const rowSlots = mobile ? Math.max(1, row.length) : 6;
+    const rowSlots = 6;
     const rowW = rowSlots * (cardW + 5) - 5;
     const x0 = (innerWidth - rowW) / 2;
     if (state.rowChoice?.mine) {
@@ -489,13 +499,19 @@ function drawTable() {
     }
     text(`${row.reduce((sum, card) => sum + points(card), 0)} pts`, Math.max(26, x0 - 12), y + cardH / 2, 10, colors.muted, 'right', 800);
     row.forEach((card, i) => drawCard(card, x0 + i * (cardW + 5), y, cardW, cardH, false, true, clamp((visualTime - sceneAnimationStart - (rowIndex * 6 + i) * 35) / 320)));
-    if (!mobile) {
-      for (let i = row.length; i < 6; i++) roundedRect(x0 + i * (cardW + 5), y, cardW, cardH, 10, null, '#d4c9a5', 1);
-    } else {
-      const slotY = y + cardH + 5;
-      for (let i = 0; i < 5; i++) {
-        ctx.beginPath(); ctx.arc(innerWidth / 2 - 16 + i * 8, slotY, 1.7, 0, Math.PI * 2);
-        ctx.fillStyle = i < row.length ? colors.red : '#cfc4a4'; ctx.fill();
+    for (let i = row.length; i < 6; i++) {
+      const slotX = x0 + i * (cardW + 5);
+      const danger = i === 5;
+      roundedRect(slotX, y, cardW, cardH, Math.min(10, cardW * .17), danger ? 'rgba(239,70,80,.055)' : 'rgba(227,191,134,.025)', danger ? 'rgba(239,70,80,.7)' : 'rgba(227,191,134,.48)', danger ? 1.75 : 1);
+      if (danger) {
+        const crossSize = Math.min(9, cardW * .22);
+        const centerX = slotX + cardW / 2;
+        const centerY = y + cardH / 2;
+        ctx.save();
+        ctx.strokeStyle = colors.red; ctx.lineWidth = mobile ? 2 : 2.5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(centerX - crossSize, centerY - crossSize); ctx.lineTo(centerX + crossSize, centerY + crossSize); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(centerX + crossSize, centerY - crossSize); ctx.lineTo(centerX - crossSize, centerY + crossSize); ctx.stroke();
+        ctx.restore();
       }
     }
   });
@@ -507,8 +523,20 @@ function drawTable() {
   const totalW = gap * Math.max(0, widestRow - 1) + handW;
   const startX = (innerWidth - totalW) / 2;
   const penalties = state.lastEvents.filter((event) => event.points > 0);
-  const roundSummary = penalties.length ? penalties.map((event) => `${event.name} +${event.points}`).join('  ·  ') : 'NO SKULLS COLLECTED';
-  const choiceLabel = replaying ? (replay.active.points ? `${replay.active.name.toUpperCase()} COLLECTS ${replay.active.points} SKULL${replay.active.points === 1 ? '' : 'S'}` : `${replay.active.name.toUpperCase()} STACKS SAFELY`) : betweenRounds ? roundSummary : state.you?.locked ? 'LOCKED · WAITING FOR OTHERS' : previewRow === -1 && state.you?.selected !== null ? 'OVERSIZED · YOU WILL CHOOSE A STACK' : state.you?.selected !== null ? 'TAP AGAIN TO DESELECT' : 'CHOOSE A CARD';
+  const roundSummary = penalties.length ? penalties.map((event) => `${event.name} +${event.points}`).join('  ·  ') : 'CLEAN TURN · NO SKULLS TAKEN';
+  const playersToGo = state.players.filter((player) => !player.ready).length;
+  const selectedCard = state.you?.selected;
+  const choiceLabel = replaying
+    ? (replay.active.points ? `${replay.active.name.toUpperCase()} TAKES ${replay.active.points} SKULL${replay.active.points === 1 ? '' : 'S'}` : `${replay.active.name.toUpperCase()} STACKS SAFELY`)
+    : betweenRounds
+      ? roundSummary
+      : state.you?.locked
+        ? `LOCKED · ${playersToGo} PLAYER${playersToGo === 1 ? '' : 'S'} TO GO`
+        : previewRow === -1 && selectedCard !== null
+          ? `${selectedCard} IS OVERSIZED · YOU'LL CHOOSE A ROW AFTER REVEAL`
+          : selectedCard !== null
+            ? `${selectedCard} SELECTED · LOCK IN WHEN READY`
+            : 'PICK A CARD · CHANGE IT ANYTIME BEFORE LOCKING IN';
   const hasAction = !betweenRounds && !state.you?.locked && !state.rowChoice;
   const guidanceY = betweenRounds ? handY - 61 : handY - (hasAction ? (mobile ? 91 : 99) : 28);
   text(choiceLabel, innerWidth / 2, guidanceY, 10, betweenRounds ? colors.red : state.you?.locked ? colors.green : colors.muted, 'center', 900);
@@ -570,6 +598,8 @@ function drawCelebration(elapsed) {
 function drawFinished() {
   header('FINAL SCORES', 'GAME OVER');
   const ranked = [...state.players].sort((a, b) => a.score - b.score);
+  const viewer = state.players.find((player) => player.id === state.you?.id);
+  const viewerAchievement = viewer?.session?.lastAchievement;
   const elapsed = Math.max(0, visualTime - sceneAnimationStart);
   const reveal = reduceMotion ? 1 : easeOut(elapsed / 620);
   drawCelebration(elapsed);
@@ -577,23 +607,28 @@ function drawFinished() {
   drawCrown(innerWidth / 2, 82, innerWidth < 500 ? 17 : 21, winnerLift);
   ctx.save(); ctx.globalAlpha = reveal; ctx.translate(0, (1 - reveal) * 18);
   text(`${(ranked[0]?.name || 'Nobody').toUpperCase()} WINS!`, innerWidth / 2, 124, innerWidth < 500 ? 30 : 42, colors.cream, 'center', 900);
-  text('Fewest skulls. Finest play.', innerWidth / 2, 158, 13, colors.muted, 'center', 700);
+  text(viewerAchievement ? `YOUR RUN · ${viewerAchievement}` : 'Fewest skulls. Finest play.', innerWidth / 2, 158, 13, viewerAchievement ? colors.orange : colors.muted, 'center', viewerAchievement ? 900 : 700);
   ctx.restore();
   const panelW = Math.min(520, innerWidth - 32);
   const panelX = (innerWidth - panelW) / 2;
+  text(`TABLE SESSION · GAME ${state.gameNumber || 1}`, innerWidth / 2, 181, 9, colors.muted, 'center', 900);
   ranked.forEach((player, i) => {
     const rowReveal = reduceMotion ? 1 : easeOut((elapsed - 260 - i * 85) / 420);
-    const y = 190 + i * 46;
+    const y = 194 + i * 46;
     ctx.save(); ctx.globalAlpha = rowReveal; ctx.translate((1 - rowReveal) * (i % 2 ? 28 : -28), 0);
     if (i === 0) { ctx.shadowColor = 'rgba(245,166,35,.28)'; ctx.shadowBlur = 18; }
     roundedRect(panelX, y, panelW, 38, 8, i === 0 ? colors.orange : 'rgba(255,247,233,.07)', i === 0 ? colors.orange : colors.line, i === 0 ? 2 : 1);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
     text(i === 0 ? '★' : `${i + 1}`, panelX + 24, y + 20, 14, i === 0 ? colors.red : colors.muted, 'center', 900);
-    text(player.name, panelX + 48, y + 20, 14, i === 0 ? colors.ink : colors.cream, 'left', 800);
-    text(`${player.score} points`, panelX + panelW - 18, y + 20, 13, i === 0 ? colors.ink : colors.cream, 'right', 900);
+    const maxName = innerWidth < 500 ? 10 : 18;
+    const displayName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
+    text(displayName, panelX + 48, y + 20, 14, i === 0 ? colors.ink : colors.cream, 'left', 800);
+    const session = player.session || { games: 1, wins: i === 0 ? 1 : 0 };
+    const record = innerWidth < 500 ? `${player.score} · ${session.wins}W/${session.games}G` : `${player.score} NOW · ${session.wins}W/${session.games}G · BEST ${session.best}`;
+    text(record, panelX + panelW - 18, y + 20, innerWidth < 500 ? 10 : 10.5, i === 0 ? colors.ink : colors.cream, 'right', 900);
     ctx.restore();
   });
-  const actionY = Math.min(innerHeight - 70, 206 + ranked.length * 46);
+  const actionY = Math.min(innerHeight - 70, 210 + ranked.length * 46);
   if (state.you?.id === state.hostId) {
     const actionW = Math.min(156, (innerWidth - 46) / 2);
     button('Play again', innerWidth / 2 - actionW - 6, actionY, actionW, 46, () => send('start'));
@@ -618,6 +653,27 @@ function drawLeavePrompt() {
   button(leaveTarget === 'arcade' ? 'To arcade' : 'Leave', x + 30 + buttonW, y + 132, buttonW, 48, leaveRoom);
 }
 
+function drawRemovePrompt() {
+  if (!removePromptPlayer) return;
+  hitAreas.push({ x: 0, y: 0, w: innerWidth, h: innerHeight, onClick: () => {} });
+  ctx.fillStyle = 'rgba(0,0,0,.72)';
+  ctx.fillRect(0, 0, innerWidth, innerHeight);
+  const w = Math.min(360, innerWidth - 32);
+  const h = 210;
+  const x = (innerWidth - w) / 2;
+  const y = (innerHeight - h) / 2;
+  roundedRect(x, y, w, h, 14, '#211b19', colors.line, 1.5);
+  text(removePromptPlayer.isBot ? 'REMOVE THIS BOT?' : 'REMOVE THIS PLAYER?', innerWidth / 2, y + 46, 20, colors.cream, 'center', 900);
+  text(removePromptPlayer.name, innerWidth / 2, y + 80, 14, colors.muted, 'center', 800);
+  const buttonW = (w - 46) / 2;
+  button('Cancel', x + 16, y + 132, buttonW, 48, () => { removePromptPlayer = null; });
+  button('Remove', x + 30 + buttonW, y + 132, buttonW, 48, () => {
+    const playerId = removePromptPlayer.id;
+    removePromptPlayer = null;
+    send('removePlayer', { playerId });
+  });
+}
+
 function render() {
   hitAreas = [];
   ctx.clearRect(0, 0, innerWidth, innerHeight);
@@ -636,6 +692,7 @@ function render() {
     if (finalReplay && !finalReplay.done) drawTable();
     else drawFinished();
   }
+  if (removePromptPlayer && state.phase === 'lobby') drawRemovePrompt();
   if (leavePrompt && state.phase !== 'join') drawLeavePrompt();
 }
 
@@ -664,16 +721,21 @@ document.addEventListener('fullscreenchange', resize);
 
 window.render_game_to_text = () => {
   const replay = resolutionSnapshot();
+  const sessionStandings = [...state.players]
+    .sort((a, b) => (b.session?.wins || 0) - (a.session?.wins || 0) || (a.session?.best ?? Infinity) - (b.session?.best ?? Infinity))
+    .map((player) => ({ id: player.id, name: player.name, ...player.session }));
   return JSON.stringify({
     coordinateSystem: 'Canvas origin top-left; x increases right, y increases down.',
     phase: state.phase,
     turn: state.turn,
     you: state.you,
     players: state.players,
+    session: { gameNumber: state.gameNumber || 0, standings: sessionStandings },
     rows: (replay?.rows || state.rows).map((cards) => ({ cards, points: cards.reduce((sum, card) => sum + points(card), 0) })),
     rowChoice: state.rowChoice,
     resolution: replay ? { completed: replay.completed, total: resolutionReplay.events.length, active: replay.active, progress: replay.progress, done: replay.done } : null,
     navigation: { canExit: state.phase !== 'join', canReturnToArcade: true, leavePrompt, leaveTarget },
+    lobbyManagement: state.phase === 'lobby' ? { canManage: state.you?.id === state.hostId, removablePlayerIds: state.players.filter((player) => player.id !== state.hostId).map((player) => player.id), pendingRemovalId: removePromptPlayer?.id || null } : null,
     guidance: state.phase === 'playing' ? { selectedCard: state.you?.selected, destinationRow: placementRow(state.you?.selected, state.rows), oversized: state.you?.selected !== null && placementRow(state.you?.selected, state.rows) === -1 } : null,
     lastEvents: state.lastEvents,
   });

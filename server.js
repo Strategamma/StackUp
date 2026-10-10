@@ -19,6 +19,15 @@ function cardPoints(value) {
   return 1;
 }
 
+function createSessionStats() {
+  return { games: 0, wins: 0, best: null, total: 0, streak: 0, bestStreak: 0, lastAchievement: '' };
+}
+
+function ensureSessionStats(player) {
+  if (!player.session) player.session = createSessionStats();
+  return player.session;
+}
+
 function shuffle(values, random = Math.random) {
   const cards = [...values];
   for (let i = cards.length - 1; i > 0; i--) {
@@ -70,8 +79,31 @@ function resolveSelections(game) {
   game.turn += 1;
   game.phase = game.turn >= HAND_SIZE ? 'finished' : 'roundEnd';
   game.resolving = false;
+  if (game.phase === 'finished') recordSessionGame(game);
   if (game.phase === 'roundEnd') scheduleNextRound(game);
   return true;
+}
+
+function recordSessionGame(game) {
+  if (game.recordedGame === game.gameNumber) return;
+  const winningScore = Math.min(...game.players.map((player) => player.score));
+  for (const player of game.players) {
+    const session = ensureSessionStats(player);
+    const previousBest = session.best;
+    const winner = player.score === winningScore;
+    session.games += 1;
+    session.total += player.score;
+    session.best = previousBest === null ? player.score : Math.min(previousBest, player.score);
+    session.wins += winner ? 1 : 0;
+    session.streak = winner ? session.streak + 1 : 0;
+    session.bestStreak = Math.max(session.bestStreak, session.streak);
+    if (winner && player.score === 0) session.lastAchievement = 'FLAWLESS WIN';
+    else if (winner && session.streak >= 2) session.lastAchievement = `${session.streak}-WIN STREAK`;
+    else if (winner) session.lastAchievement = 'TABLE WIN';
+    else if (previousBest !== null && player.score < previousBest) session.lastAchievement = 'PERSONAL BEST';
+    else session.lastAchievement = '';
+  }
+  game.recordedGame = game.gameNumber;
 }
 
 function placeCard(game, player, card, rowIndex, takeRow = false) {
@@ -103,13 +135,14 @@ function selectForDisconnectedPlayers(game) {
 }
 
 function createGame() {
-  return { phase: 'lobby', turn: 0, players: [], rows: [], lastEvents: [], resolving: false, resolutionQueue: [], pendingChoice: null, hostId: null };
+  return { phase: 'lobby', turn: 0, gameNumber: 0, recordedGame: 0, players: [], rows: [], lastEvents: [], resolving: false, resolutionQueue: [], pendingChoice: null, hostId: null };
 }
 
 function startGame(game, random = Math.random) {
   clearTimeout(roundAdvanceTimer);
   const deck = shuffle(Array.from({ length: 104 }, (_, i) => i + 1), random);
   game.turn = 0;
+  game.gameNumber += 1;
   game.phase = 'playing';
   game.lastEvents = [];
   game.resolutionQueue = [];
@@ -134,7 +167,11 @@ function publicState(game, viewer) {
     maxTurns: HAND_SIZE,
     hostId: game.hostId,
     you: viewer ? { id: viewer.id, name: viewer.name, hand: viewer.hand, selected: viewer.selected, locked: Boolean(viewer.locked), score: viewer.score } : null,
-    players: game.players.map((p) => ({ id: p.id, name: p.name, score: p.score, connected: p.isBot || Boolean(p.ws && p.ws.readyState === WebSocket.OPEN), ready: Boolean(p.locked), cards: p.hand.length, isBot: Boolean(p.isBot), left: Boolean(p.left) })),
+    gameNumber: game.gameNumber,
+    players: game.players.map((p) => {
+      const session = ensureSessionStats(p);
+      return { id: p.id, name: p.name, score: p.score, connected: p.isBot || Boolean(p.ws && p.ws.readyState === WebSocket.OPEN), ready: Boolean(p.locked), cards: p.hand.length, isBot: Boolean(p.isBot), left: Boolean(p.left), session: { ...session, average: session.games ? Math.round(session.total / session.games) : null } };
+    }),
     rows: game.rows,
     rowChoice: game.pendingChoice ? { ...game.pendingChoice, mine: game.pendingChoice.playerId === viewer?.id } : null,
     lastEvents: game.lastEvents,
@@ -178,7 +215,7 @@ function handleMessage(ws, raw) {
       const name = cleanName(message.name);
       if (!name) return send(ws, { type: 'error', message: 'Enter a name first.' });
       const id = String(nextId++);
-      player = { id, token: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`, name, hand: [], score: 0, selected: null, locked: false, ws };
+      player = { id, token: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`, name, hand: [], score: 0, selected: null, locked: false, ws, session: createSessionStats() };
       game.players.push(player);
       if (!game.hostId) game.hostId = id;
     } else {
@@ -204,7 +241,20 @@ function handleMessage(ws, raw) {
     if (game.phase !== 'lobby') return;
     if (game.players.length >= MAX_PLAYERS) return send(ws, { type: 'error', message: 'This table is full.' });
     const botNumber = game.players.filter((candidate) => candidate.isBot).length + 1;
-    game.players.push({ id: String(nextId++), token: '', name: `Bot ${botNumber}`, hand: [], score: 0, selected: null, locked: false, ws: null, isBot: true });
+    game.players.push({ id: String(nextId++), token: '', name: `Bot ${botNumber}`, hand: [], score: 0, selected: null, locked: false, ws: null, isBot: true, session: createSessionStats() });
+    return broadcast(game);
+  }
+  if (message.type === 'removePlayer') {
+    if (player.id !== game.hostId) return send(ws, { type: 'error', message: 'Only the host can remove players.' });
+    if (game.phase !== 'lobby') return send(ws, { type: 'error', message: 'Players can only be removed before the game starts.' });
+    const target = game.players.find((candidate) => candidate.id === String(message.playerId));
+    if (!target || target.id === game.hostId) return send(ws, { type: 'error', message: 'That seat cannot be removed.' });
+    game.players = game.players.filter((candidate) => candidate !== target);
+    target.token = '';
+    if (target.ws) {
+      target.ws.playerId = null;
+      send(target.ws, { type: 'kicked', message: 'The host removed you from the lobby.' });
+    }
     return broadcast(game);
   }
   if (message.type === 'nextRound') {
@@ -319,4 +369,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { cardPoints, chooseRow, resolveSelections, placeCard, selectForDisconnectedPlayers, createGame, startGame, server };
+module.exports = { cardPoints, chooseRow, resolveSelections, placeCard, selectForDisconnectedPlayers, createGame, startGame, recordSessionGame, server };

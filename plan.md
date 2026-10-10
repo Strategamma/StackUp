@@ -1,7 +1,7 @@
 # Current task
 
-- Goal: bring every interactive element to a consistent premium standard and reduce gameplay contrast.
-- Scope: DOM and canvas hover/press/focus feedback, cards, skulls, row choices, navigation controls, dialogs, and palette; no mechanics changes.
-- Approach: add shared pointer-state animation to canvas controls, strengthen DOM micro-interactions, use warm beige cards/text, make every skull red, and soften the red background glow.
-- Risks: hover hit-area drift, touch behavior, card layout clipping, reduced-motion accessibility, and readable disabled states.
-- Verification: syntax/tests, deterministic state output, Playwright interaction attempt, served asset checks, and desktop/mobile visual review where host permissions allow.
+- Goal: make information messages actionable and give the table a persistent session scoreboard.
+- Scope: connection/lobby/selection/resolution copy plus session games, wins, best score, streak, and end-game achievements.
+- Approach: prefer contextual canvas guidance over extra toasts; retain session stats on each seat across replays; surface compact records on the final leaderboard.
+- Risks: duplicate game recording, tied winners, scoreboard density with eight players, and stats surviving replay without surviving a new empty table.
+- Verification: unit/integration coverage for one game and replay stats, syntax checks, deterministic state output, and Playwright attempt.

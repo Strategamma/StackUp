@@ -27,6 +27,7 @@ Browser-based local-Wi-Fi card game for 2–8 players, inspired by simultaneous-
 - Reconnect identity is stored in browser local storage.
 - Players leaving before a game free their seat and transfer host status; disconnected players auto-play their lowest remaining card so an active game cannot deadlock.
 - A host can fill empty seats with simple bots, allowing immediate solo play and mixed human/bot tables.
+- Before a game starts, the host can remove any non-host bot or human seat; human reconnect tokens are invalidated so removed seats are genuinely freed.
 - Browser tokens reclaim a player's reserved seat after lobby or gameplay disconnects; explicit Exit permanently releases it.
 - Turn input is two-step: players may select, switch, or deselect a card until pressing **Lock in**; only locked choices count as ready.
 - Resolution pauses when a card is above all four row endings, allowing that player to choose any row to collect; bots/disconnected players choose the lowest-penalty row automatically.
@@ -36,3 +37,5 @@ Browser-based local-Wi-Fi card game for 2–8 players, inspired by simultaneous-
 - StackUp is linked bidirectionally with `https://decadenceinc.com`: the join screen returns directly to the arcade, while active tables confirm before leaving and release/auto-play the player's seat correctly.
 - The client presentation includes card sheen and impact motion plus a crown, confetti, and staged leaderboard reveal at game end; reduced-motion users receive the same information without decorative movement.
 - UI follows decadenceinc.com's arcade language: near-black grid backdrop, cream editorial typography/cards, amber primary actions, red depth accents, green ready/live states, and dark translucent panels.
+- Every viewport renders all six row slots; the sixth is outlined in red with an X to communicate the collection penalty before a card is chosen.
+- A table session persists across **Play again** games while at least one human remains: each seat tracks games, wins, best/average score, current/best win streak, and its latest earned achievement. Stats reset with a new empty table.
