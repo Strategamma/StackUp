@@ -77,7 +77,6 @@ test('two clients can join and finish all ten simultaneous turns', { timeout: 15
       await new Promise((resolve) => b.ws.once('open', resolve));
       b.ws.send(JSON.stringify({ type: 'join', name: 'Ben', token: joinedB.token }));
       stateB = (await b.next((m) => m.type === 'state' && m.state.turn === 1 && m.state.phase === 'roundEnd')).state;
-      a.ws.send(JSON.stringify({ type: 'nextRound' }));
       [stateA, stateB] = await Promise.all([
         a.next((m) => m.type === 'state' && m.state.turn === 1 && m.state.phase === 'playing').then((m) => m.state),
         b.next((m) => m.type === 'state' && m.state.turn === 1 && m.state.phase === 'playing').then((m) => m.state),

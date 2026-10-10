@@ -13,3 +13,6 @@
 - Decadence Arcade navigation is always obvious: direct on the join screen, confirmation-gated at an active table, and offered beside replay after the final score.
 - Joining explains the flow in three steps and uses a single name field; every table header exposes invite-link copying.
 - Premium motion adds card sheen, travel trails, safe-stack impact rings, and a crown/confetti/staged-rank victory sequence without changing game timing or rules.
+- Interactive elements consistently lift on hover, compress on press, expose a visible focus state, and keep equivalent tap behavior on touch devices.
+- Gameplay favors warm beige cards and labels over stark white, with red skulls at every penalty value and a restrained charcoal/red table glow.
+- Round summaries remain visible through the resolution replay and a short reading pause, then the authoritative server advances automatically without a host click.

@@ -30,7 +30,7 @@ Browser-based local-Wi-Fi card game for 2–8 players, inspired by simultaneous-
 - Browser tokens reclaim a player's reserved seat after lobby or gameplay disconnects; explicit Exit permanently releases it.
 - Turn input is two-step: players may select, switch, or deselect a card until pressing **Lock in**; only locked choices count as ready.
 - Resolution pauses when a card is above all four row endings, allowing that player to choose any row to collect; bots/disconnected players choose the lowest-penalty row automatically.
-- Every turn ends on a score summary; the host advances to the next round, and all player scores stay visible during selection.
+- Every turn ends on a score summary; the server advances automatically after the resolution animation and a brief reading pause, and all player scores stay visible during selection.
 - The PWA is a client and still requires the central Node/WebSocket server; mobile browsers cannot host the LAN game themselves.
 - Clients retain the pre-resolution rows and replay the server event log highest-to-lowest; this is presentation only and never changes authoritative state.
 - StackUp is linked bidirectionally with `https://decadenceinc.com`: the join screen returns directly to the arcade, while active tables confirm before leaving and release/auto-play the player's seat correctly.

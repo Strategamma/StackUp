@@ -10,7 +10,7 @@ const closeHelpButton = document.querySelector('#close-help');
 const toast = document.querySelector('#toast');
 const arcadeLink = document.querySelector('.arcade-link');
 
-const colors = { ink: '#11100f', paper: '#100f0e', cream: '#fff7e9', red: '#ff454d', orange: '#ffb33f', green: '#66efad', pale: '#3a3430', muted: '#b9aea6', line: 'rgba(255,247,233,.14)', panel: 'rgba(49,30,27,.82)' };
+const colors = { ink: '#17110e', paper: '#171311', cream: '#efddbf', card: '#e3bf86', red: '#ef4650', orange: '#f4ad3e', green: '#6fdaa5', pale: '#443a34', muted: '#b7a38f', line: 'rgba(239,221,191,.16)', panel: 'rgba(47,34,29,.9)' };
 let state = { phase: 'join', players: [], rows: [], you: null, turn: 0, maxTurns: 10, lastEvents: [] };
 let socket;
 let hitAreas = [];
@@ -21,6 +21,7 @@ let manualClose = false;
 let visualTime = performance.now();
 let sceneAnimationStart = visualTime;
 let selectionAnimationStart = visualTime;
+let pointerState = { x: -1, y: -1, down: false };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const RESOLUTION_STEP_MS = reduceMotion ? 180 : 850;
 let resolutionReplay = null;
@@ -100,8 +101,8 @@ function connect(name) {
       hideJoinPanel();
       clearTimeout(waitingToastTimer);
       if (enteredRoundEnd && state.you?.id !== state.hostId) {
-        const delay = resolutionReplay ? resolutionReplay.events.length * RESOLUTION_STEP_MS + 150 : 0;
-        waitingToastTimer = setTimeout(() => { if (state.phase === 'roundEnd') showToast('Waiting for the host to start the round'); }, delay);
+        const delay = resolutionReplay ? resolutionReplay.events.length * RESOLUTION_STEP_MS + 250 : 250;
+        waitingToastTimer = setTimeout(() => { if (state.phase === 'roundEnd') showToast('Next round starting shortly'); }, delay);
       }
       render();
     }
@@ -251,6 +252,7 @@ function replayScore(player, replay) {
 
 function clamp(value, min = 0, max = 1) { return Math.max(min, Math.min(max, value)); }
 function easeOut(value) { return 1 - Math.pow(1 - clamp(value), 3); }
+function contains(x, y, w, h) { return pointerState.x >= x && pointerState.x <= x + w && pointerState.y >= y && pointerState.y <= y + h; }
 
 function drawSkull(x, y, size, color) {
   ctx.save();
@@ -274,18 +276,20 @@ function drawSkull(x, y, size, color) {
   ctx.restore();
 }
 
-function drawCard(card, x, y, w, h, selected = false, compact = false, entrance = 1) {
+function drawCard(card, x, y, w, h, selected = false, compact = false, entrance = 1, hovered = false) {
   const reveal = reduceMotion ? 1 : easeOut(entrance);
   ctx.save();
   ctx.globalAlpha = reveal;
-  ctx.translate(x + w / 2, y + h / 2 + (1 - reveal) * 24);
+  const hoverLift = hovered && !reduceMotion ? 5 + Math.sin(visualTime / 180) : 0;
+  ctx.translate(x + w / 2, y + h / 2 + (1 - reveal) * 24 - hoverLift);
   const selectedPulse = selected && !reduceMotion ? 1 + Math.sin(visualTime / 120) * .018 : 1;
-  ctx.scale(selectedPulse * (.92 + reveal * .08), selectedPulse * (.92 + reveal * .08));
+  const hoverScale = hovered && !reduceMotion ? 1.035 : 1;
+  ctx.scale(selectedPulse * hoverScale * (.92 + reveal * .08), selectedPulse * hoverScale * (.92 + reveal * .08));
   ctx.translate(-x - w / 2, -y - h / 2);
   ctx.shadowColor = selected ? 'rgba(255,179,63,.5)' : 'rgba(0,0,0,.42)';
   ctx.shadowBlur = selected ? 18 : 5;
   ctx.shadowOffsetY = selected ? 7 : 3;
-  roundedRect(x, y, w, h, Math.min(12, w * .17), selected ? colors.orange : colors.cream, selected ? colors.orange : 'rgba(255,247,233,.62)', selected ? 3 : 1.5);
+  roundedRect(x, y, w, h, Math.min(12, w * .17), selected ? colors.orange : hovered ? '#edcd99' : colors.card, selected ? colors.orange : hovered ? 'rgba(244,173,62,.9)' : 'rgba(239,221,191,.42)', selected || hovered ? 2.5 : 1.25);
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   ctx.save();
   ctx.beginPath(); ctx.roundRect(x + 2, y + 2, w - 4, h - 4, Math.min(10, w * .14)); ctx.clip();
@@ -306,34 +310,43 @@ function drawCard(card, x, y, w, h, selected = false, compact = false, entrance 
   const total = (count - 1) * spacing;
   for (let i = 0; i < count; i++) {
     const bob = reduceMotion ? 0 : Math.sin(visualTime / 180 + i * .9) * .7;
-    drawSkull(x + w / 2 - total / 2 + i * spacing, y + h * .76 + bob, skullSize, count >= 5 ? colors.red : colors.green);
+    drawSkull(x + w / 2 - total / 2 + i * spacing, y + h * .76 + bob, skullSize, colors.red);
   }
   ctx.restore();
 }
 
 function button(label, x, y, w, h, onClick, active = true) {
-  roundedRect(x + 5, y + 7, w, h, 8, active ? colors.red : '#2a2624');
-  roundedRect(x, y, w, h, 8, active ? colors.orange : '#393330', active ? colors.orange : '#554c47', 1.5);
-  text(label.toUpperCase(), x + w / 2, y + h / 2, 12, active ? colors.ink : '#817771', 'center', 900);
+  const hovered = active && contains(x, y, w, h);
+  const pressed = hovered && pointerState.down;
+  const lift = reduceMotion ? 0 : pressed ? 4 : hovered ? -3 : 0;
+  const shadowY = pressed ? 2 : hovered ? 10 : 7;
+  if (hovered) {
+    ctx.save(); ctx.shadowColor = 'rgba(244,173,62,.3)'; ctx.shadowBlur = 22;
+    roundedRect(x - 2, y - 3, w + 4, h + 6, 10, 'rgba(244,173,62,.08)'); ctx.restore();
+  }
+  roundedRect(x + 5, y + shadowY, w, h, 8, active ? colors.red : '#2a2624');
+  roundedRect(x, y + lift, w, h, 8, active ? (hovered ? '#ffc35c' : colors.orange) : '#393330', active ? colors.orange : '#554c47', 1.5);
+  text(label.toUpperCase(), x + w / 2, y + h / 2 + lift, 12, active ? colors.ink : '#817771', 'center', 900);
   if (active) hitAreas.push({ x, y, w, h, onClick });
+}
+
+function headerControl(label, x, y, w, h, onClick, size = 10) {
+  const hovered = contains(x, y, w, h);
+  const pressed = hovered && pointerState.down;
+  const offset = reduceMotion ? 0 : pressed ? 2 : hovered ? -2 : 0;
+  roundedRect(x, y + offset, w, h, 8, hovered ? 'rgba(244,173,62,.15)' : 'rgba(239,221,191,.055)', hovered ? 'rgba(244,173,62,.62)' : colors.line, hovered ? 1.5 : 1);
+  text(label, x + w / 2, y + h / 2 + offset, size, hovered ? colors.orange : colors.cream, 'center', 900);
+  hitAreas.push({ x, y, w, h, onClick });
 }
 
 function header(title, subtitle) {
   const compact = innerWidth < 560;
-  roundedRect(12, 10, compact ? 38 : 82, 34, 8, 'rgba(255,247,233,.06)', colors.line, 1);
-  text(compact ? 'D' : 'D  ARCADE', 12 + (compact ? 19 : 41), 27, compact ? 12 : 9, colors.cream, 'center', 900);
-  hitAreas.push({ x: 12, y: 10, w: compact ? 38 : 82, h: 34, onClick: () => { leaveTarget = 'arcade'; leavePrompt = true; } });
+  headerControl(compact ? 'D' : 'D  ARCADE', 12, 10, compact ? 38 : 82, 34, () => { leaveTarget = 'arcade'; leavePrompt = true; }, compact ? 12 : 9);
   const exitX = compact ? 56 : 94;
-  roundedRect(exitX, 10, compact ? 38 : 54, 34, 8, 'rgba(255,247,233,.06)', colors.line, 1);
-  text(compact ? '×' : 'EXIT', exitX + (compact ? 19 : 27), 27, compact ? 16 : 9, colors.cream, 'center', 900);
-  hitAreas.push({ x: exitX, y: 10, w: compact ? 38 : 54, h: 34, onClick: () => { leaveTarget = 'home'; leavePrompt = true; } });
+  headerControl(compact ? '×' : 'EXIT', exitX, 10, compact ? 38 : 54, 34, () => { leaveTarget = 'home'; leavePrompt = true; }, compact ? 16 : 9);
   text(title, innerWidth / 2, 27, innerWidth < 500 ? 10 : 13, colors.cream, 'center', 900);
-  roundedRect(innerWidth - 46, 10, 34, 34, 8, 'rgba(255,247,233,.06)', colors.line, 1);
-  text('?', innerWidth - 29, 27, 15, colors.cream, 'center', 900);
-  hitAreas.push({ x: innerWidth - 46, y: 10, w: 34, h: 34, onClick: showHelp });
-  roundedRect(innerWidth - 86, 10, 34, 34, 8, 'rgba(255,247,233,.06)', colors.line, 1);
-  text('↗', innerWidth - 69, 27, 15, colors.cream, 'center', 900);
-  hitAreas.push({ x: innerWidth - 86, y: 10, w: 34, h: 34, onClick: copyInviteLink });
+  headerControl('?', innerWidth - 46, 10, 34, 34, showHelp, 15);
+  headerControl('↗', innerWidth - 86, 10, 34, 34, copyInviteLink, 15);
   if (innerWidth >= 720) text(subtitle, innerWidth - 98, 27, 11, colors.muted, 'right', 800);
   ctx.strokeStyle = colors.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(18, 50); ctx.lineTo(innerWidth - 18, 50); ctx.stroke();
 }
@@ -372,7 +385,8 @@ function drawResolutionCard(replay, tableRows, top, rowH, cardW, cardH) {
   const event = replay.active;
   const travel = easeOut(Math.min(1, replay.progress / .72));
   const destinationLength = event.taken.length ? 1 : tableRows[event.row].length + 1;
-  const destinationWidth = destinationLength * (cardW + 5) - 5;
+  const destinationSlots = innerWidth < 650 ? destinationLength : 6;
+  const destinationWidth = destinationSlots * (cardW + 5) - 5;
   const targetX = (innerWidth - destinationWidth) / 2 + (destinationLength - 1) * (cardW + 5);
   const targetY = top + event.row * rowH;
   const startX = innerWidth / 2 - cardW / 2;
@@ -425,7 +439,7 @@ function drawTable() {
   const tableRows = replay ? replay.rows : state.rows;
   const choiceTitle = replaying ? `${replay.active.name.toUpperCase()} PLAYS ${replay.active.card}` : betweenRounds ? `ROUND ${state.turn} COMPLETE` : state.rowChoice ? (state.rowChoice.mine ? 'CHOOSE A ROW' : `${state.rowChoice.name.toUpperCase()} IS CHOOSING`) : `TURN ${Math.min(state.turn + 1, state.maxTurns)} OF ${state.maxTurns}`;
   header(choiceTitle, state.you ? `${state.you.score} PTS` : '');
-  const playerY = 72;
+  const playerY = mobile ? 76 : 82;
   const playerGap = Math.min(120, (innerWidth - 36) / Math.max(1, state.players.length));
   const total = playerGap * state.players.length;
   state.players.forEach((player, i) => {
@@ -446,7 +460,7 @@ function drawTable() {
   const handH = mobile ? 68 : 96;
   const handRowGap = mobile ? handH + 7 : 0;
   const handBaseY = mobile ? innerHeight - handRows * handRowGap - 8 : innerHeight - 122;
-  const top = mobile ? 108 : 122;
+  const top = mobile ? 116 : 138;
   const available = mobile ? Math.max(190, handBaseY - top - 28) : Math.min(innerHeight * .47, innerHeight - 275);
   const rowH = available / 4;
   const maxCardsW = Math.min(innerWidth - 40, 650);
@@ -455,15 +469,18 @@ function drawTable() {
   const previewRow = !betweenRounds && !state.you?.locked ? placementRow(state.you?.selected, tableRows) : null;
   tableRows.forEach((row, rowIndex) => {
     const y = top + rowIndex * rowH;
-    const rowW = row.length * (cardW + 5) - 5;
+    const rowSlots = mobile ? Math.max(1, row.length) : 6;
+    const rowW = rowSlots * (cardW + 5) - 5;
     const x0 = (innerWidth - rowW) / 2;
     if (state.rowChoice?.mine) {
+      const hovered = contains(12, y - 4, innerWidth - 24, cardH + 8);
       const pulse = reduceMotion ? 2 : 2 + (Math.sin(visualTime / 150) + 1) * 1.2;
-      roundedRect(12, y - 4, innerWidth - 24, cardH + 8, 13, 'rgba(217,85,54,.06)', colors.red, pulse);
+      roundedRect(12, y - 4, innerWidth - 24, cardH + 8, 13, hovered ? 'rgba(244,173,62,.13)' : 'rgba(239,70,80,.06)', hovered ? colors.orange : colors.red, hovered ? 3.5 : pulse);
       hitAreas.push({ x: 12, y: y - 4, w: innerWidth - 24, h: cardH + 8, onClick: () => send('chooseRow', { row: rowIndex }) });
     } else if (previewRow === rowIndex) {
       roundedRect(12, y - 4, innerWidth - 24, cardH + 8, 13, 'rgba(57,117,103,.06)', colors.green, 2.5);
-      text('LANDS HERE', innerWidth - 20, y + cardH / 2, 9, colors.green, 'right', 900);
+      roundedRect(innerWidth - 104, y + cardH / 2 - 11, 90, 22, 11, 'rgba(111,218,165,.12)', 'rgba(111,218,165,.35)', 1);
+      text('LANDS HERE', innerWidth - 59, y + cardH / 2, 8, colors.green, 'center', 900);
     } else if (previewRow === -1 && state.you?.selected !== null) {
       roundedRect(12, y - 4, innerWidth - 24, cardH + 8, 13, 'rgba(217,85,54,.025)', '#d9a08f', 1);
     } else if (replaying && replay.active.row === rowIndex) {
@@ -492,7 +509,9 @@ function drawTable() {
   const penalties = state.lastEvents.filter((event) => event.points > 0);
   const roundSummary = penalties.length ? penalties.map((event) => `${event.name} +${event.points}`).join('  ·  ') : 'NO SKULLS COLLECTED';
   const choiceLabel = replaying ? (replay.active.points ? `${replay.active.name.toUpperCase()} COLLECTS ${replay.active.points} SKULL${replay.active.points === 1 ? '' : 'S'}` : `${replay.active.name.toUpperCase()} STACKS SAFELY`) : betweenRounds ? roundSummary : state.you?.locked ? 'LOCKED · WAITING FOR OTHERS' : previewRow === -1 && state.you?.selected !== null ? 'OVERSIZED · YOU WILL CHOOSE A STACK' : state.you?.selected !== null ? 'TAP AGAIN TO DESELECT' : 'CHOOSE A CARD';
-  text(choiceLabel, innerWidth / 2, handY - 19, 10, betweenRounds ? colors.red : state.you?.locked ? colors.green : colors.muted, 'center', 900);
+  const hasAction = !betweenRounds && !state.you?.locked && !state.rowChoice;
+  const guidanceY = betweenRounds ? handY - 61 : handY - (hasAction ? (mobile ? 91 : 99) : 28);
+  text(choiceLabel, innerWidth / 2, guidanceY, 10, betweenRounds ? colors.red : state.you?.locked ? colors.green : colors.muted, 'center', 900);
   hand.forEach((card, index) => {
     const handRow = mobile ? Math.floor(index / 5) : 0;
     const handColumn = mobile ? index % 5 : index;
@@ -503,14 +522,16 @@ function drawTable() {
     const selected = state.you.selected === card;
     const selectionBounce = selected && !reduceMotion ? Math.sin(clamp((visualTime - selectionAnimationStart) / 260) * Math.PI) * 7 : 0;
     const y = handY + handRow * handRowGap - (selected ? 6 + selectionBounce : 0);
-    drawCard(card, x, y, handW, handH, selected, false, clamp((visualTime - sceneAnimationStart - index * 45) / 380));
-    if (!betweenRounds && !replaying && !state.you.locked) hitAreas.push({ x, y, w: handW, h: handH, onClick: () => send('select', { card }) });
+    const interactive = !betweenRounds && !replaying && !state.you.locked;
+    const hovered = interactive && contains(x, y, handW, handH);
+    drawCard(card, x, y, handW, handH, selected, false, clamp((visualTime - sceneAnimationStart - index * 45) / 380), hovered);
+    if (interactive) hitAreas.push({ x, y: y - 7, w: handW, h: handH + 10, onClick: () => send('select', { card }) });
   });
   if (betweenRounds && !replaying) {
-    if (state.you?.id === state.hostId) button('Start next round', innerWidth / 2 - 76, handY - 58, 152, 34, () => send('nextRound'));
+    text('NEXT ROUND STARTING…', innerWidth / 2, handY - 28, 9, colors.orange, 'center', 900);
   } else if (!state.you?.locked && !state.rowChoice) {
     const lockW = mobile ? 92 : 110;
-    button('Lock in', innerWidth / 2 - lockW / 2, handY - 58, lockW, 34, () => send('confirm'), state.you?.selected !== null);
+    button('Lock in', innerWidth / 2 - lockW / 2, handY - 72, lockW, 38, () => send('confirm'), state.you?.selected !== null);
   }
 }
 
@@ -603,7 +624,7 @@ function render() {
   ctx.fillStyle = colors.paper;
   ctx.fillRect(0, 0, innerWidth, innerHeight);
   const glow = ctx.createRadialGradient(innerWidth * .72, innerHeight * .22, 0, innerWidth * .72, innerHeight * .22, Math.max(innerWidth, innerHeight) * .7);
-  glow.addColorStop(0, 'rgba(142,36,30,.28)'); glow.addColorStop(.46, 'rgba(69,26,22,.10)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  glow.addColorStop(0, 'rgba(116,43,34,.17)'); glow.addColorStop(.46, 'rgba(69,38,29,.07)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = glow; ctx.fillRect(0, 0, innerWidth, innerHeight);
   ctx.strokeStyle = 'rgba(255,247,233,.055)'; ctx.lineWidth = 1;
   for (let x = 0; x < innerWidth; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, innerHeight); ctx.stroke(); }
@@ -626,6 +647,15 @@ function pointer(event) {
 }
 
 canvas.addEventListener('pointerup', pointer);
+canvas.addEventListener('pointermove', (event) => {
+  const rect = canvas.getBoundingClientRect();
+  pointerState.x = (event.clientX - rect.left) * innerWidth / rect.width;
+  pointerState.y = (event.clientY - rect.top) * innerHeight / rect.height;
+  canvas.style.cursor = hitAreas.some((area) => pointerState.x >= area.x && pointerState.x <= area.x + area.w && pointerState.y >= area.y && pointerState.y <= area.y + area.h) ? 'pointer' : 'default';
+});
+canvas.addEventListener('pointerdown', () => { pointerState.down = true; });
+canvas.addEventListener('pointerleave', () => { pointerState = { x: -1, y: -1, down: false }; canvas.style.cursor = 'default'; });
+window.addEventListener('pointerup', () => { pointerState.down = false; });
 window.addEventListener('resize', resize);
 window.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'f') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();

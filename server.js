@@ -7,6 +7,9 @@ const { WebSocketServer, WebSocket } = require('ws');
 const PORT = Number(process.env.PORT) || 8080;
 const MAX_PLAYERS = 8;
 const HAND_SIZE = 10;
+const RESOLUTION_STEP_MS = 850;
+const ROUND_READING_PAUSE_MS = 1500;
+let roundAdvanceTimer;
 
 function cardPoints(value) {
   if (value === 55) return 7;
@@ -67,6 +70,7 @@ function resolveSelections(game) {
   game.turn += 1;
   game.phase = game.turn >= HAND_SIZE ? 'finished' : 'roundEnd';
   game.resolving = false;
+  if (game.phase === 'roundEnd') scheduleNextRound(game);
   return true;
 }
 
@@ -103,6 +107,7 @@ function createGame() {
 }
 
 function startGame(game, random = Math.random) {
+  clearTimeout(roundAdvanceTimer);
   const deck = shuffle(Array.from({ length: 104 }, (_, i) => i + 1), random);
   game.turn = 0;
   game.phase = 'playing';
@@ -142,6 +147,18 @@ function send(ws, payload) {
 
 function broadcast(game) {
   for (const player of game.players) send(player.ws, { type: 'state', state: publicState(game, player) });
+}
+
+function scheduleNextRound(game) {
+  clearTimeout(roundAdvanceTimer);
+  const completedTurn = game.turn;
+  const delay = game.lastEvents.length * RESOLUTION_STEP_MS + ROUND_READING_PAUSE_MS;
+  roundAdvanceTimer = setTimeout(() => {
+    if (game.phase !== 'roundEnd' || game.turn !== completedTurn) return;
+    game.phase = 'playing';
+    broadcast(game);
+  }, delay);
+  roundAdvanceTimer.unref?.();
 }
 
 function cleanName(value) {
@@ -193,6 +210,7 @@ function handleMessage(ws, raw) {
   if (message.type === 'nextRound') {
     if (player.id !== game.hostId) return send(ws, { type: 'error', message: 'Only the host can start the next round.' });
     if (game.phase !== 'roundEnd') return;
+    clearTimeout(roundAdvanceTimer);
     game.phase = 'playing';
     return broadcast(game);
   }

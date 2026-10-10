@@ -4,6 +4,8 @@ Current request: Integrate StackUp with decadenceinc.com, add navigation in and 
 
 Current visual refresh: match the supplied decadenceinc.com design references across all StackUp UI while keeping mechanics unchanged. Target language: black grid, warm cream, amber CTA, vivid red depth, condensed editorial headings, subtle glow.
 
+Current polish pass: audit every interactive element for hover/press/focus feedback; reduce table contrast with beige cards and typography, red skulls, and a softer charcoal/red background.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.
@@ -33,3 +35,5 @@ Current visual refresh: match the supplied decadenceinc.com design references ac
 - TODO: after deployment, manually inspect the join screen, compact table header, resolution trail, and final celebration on one phone and one desktop browser.
 - Applied Decadence visual language to the join/help UI and all canvas states without changing mechanics: black grid, warm cream type/cards, amber CTAs, red depth accents, green live/ready status, editorial uppercase headings, and dark translucent panels. Bumped the PWA cache to v5. Initial syntax and all 10 rule/integration tests pass.
 - Required Playwright rerun attempted after installing Chromium under `/tmp`; macOS denied Chromium's Mach rendezvous process before launch. The built-in browser was also explicitly denied localhost permission, so visual screenshot inspection remains host-blocked. HTTP asset smoke checks pass.
+- Added canvas hover/press motion for buttons, header controls, selectable cards, and row choices; strengthened DOM hover/focus/press feedback; changed cards to beige and all skulls to red; softened table text/background contrast. Re-centered desktop rows around all six slots, separated guidance/action/hand zones, and moved toast feedback below the header.
+- Round-end progression now advances automatically from the authoritative server after the resolution animation plus a short reading pause; guests receive passive status instead of waiting on a manual host button.
