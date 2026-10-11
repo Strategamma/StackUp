@@ -3,13 +3,6 @@ const ctx = canvas.getContext('2d');
 const joinPanel = document.querySelector('#join');
 const joinForm = document.querySelector('#join-form');
 const nameInput = document.querySelector('#name');
-const internetModeButton = document.querySelector('#internet-mode');
-const lanModeButton = document.querySelector('#lan-mode');
-const lanDetail = document.querySelector('#lan-detail');
-const lanForm = document.querySelector('#lan-form');
-const lanAddress = document.querySelector('#lan-address');
-const lanTip = document.querySelector('#lan-tip');
-const seatHeading = document.querySelector('#seat-heading');
 const installButton = document.querySelector('#install-app');
 const showHelpButton = document.querySelector('#show-help');
 const helpPanel = document.querySelector('#help');
@@ -36,10 +29,8 @@ let resolutionReplay = null;
 let resolutionBaseRows = null;
 let displayName = localStorage.getItem('stackup-name') || '';
 nameInput.value = displayName;
-const INTERNET_ORIGIN = 'https://stackup.decadenceinc.com';
 const isLocalHost = /^(localhost|127\.0\.0\.1|\d{1,3}(?:\.\d{1,3}){3}|[^.]+(?:\.local)?)$/i.test(location.hostname);
 const isLoopback = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
-let tableMode = null;
 let lanShareOrigin = location.origin;
 
 if (isLoopback) {
@@ -48,61 +39,9 @@ if (isLoopback) {
     .then((addresses) => {
       if (!Array.isArray(addresses) || !addresses.length) return;
       lanShareOrigin = addresses[0];
-      lanAddress.value = new URL(lanShareOrigin).host;
-      lanTip.textContent = `This computer's Wi-Fi address is ${lanAddress.value}. Use it on devices connected to the same Wi-Fi, or enter another host's address below.`;
     })
     .catch(() => {});
 }
-
-function chooseTable(mode) {
-  tableMode = mode;
-  internetModeButton.setAttribute('aria-pressed', String(mode === 'internet'));
-  lanModeButton.setAttribute('aria-pressed', String(mode === 'lan'));
-  lanDetail.hidden = mode !== 'lan';
-  joinForm.hidden = mode === 'lan' && !isLocalHost;
-  if (mode === 'internet') {
-    if (location.origin !== INTERNET_ORIGIN) {
-      location.assign(`${INTERNET_ORIGIN}/?table=internet`);
-      return;
-    }
-    seatHeading.textContent = '✦ Internet table · play from anywhere';
-    nameInput.focus();
-  } else {
-    if (isLocalHost && !lanAddress.value) lanAddress.value = isLoopback ? new URL(lanShareOrigin).host : location.host;
-    if (isLocalHost) {
-      if (!isLoopback) lanTip.textContent = `You're on this LAN table at ${location.host}. To switch tables, enter another host's Wi-Fi address below.`;
-      seatHeading.textContent = '⌁ LAN table · same Wi-Fi';
-      nameInput.focus();
-    } else {
-      lanAddress.focus();
-    }
-  }
-}
-
-internetModeButton.addEventListener('click', () => chooseTable('internet'));
-lanModeButton.addEventListener('click', () => chooseTable('lan'));
-lanForm.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const input = lanAddress.value.trim();
-  const address = /^[a-z]+:\/\//i.test(input) ? input : `http://${input}`;
-  let target;
-  try { target = new URL(address); } catch { showToast('Enter a valid Wi-Fi address.'); return; }
-  if (!['http:', 'https:'].includes(target.protocol) || !target.hostname || target.username || target.password) {
-    showToast('Enter a valid Wi-Fi address.');
-    return;
-  }
-  if (target.origin !== location.origin) {
-    location.assign(`${target.origin}/?table=lan`);
-    return;
-  }
-  joinForm.hidden = false;
-  seatHeading.textContent = '⌁ LAN table · same Wi-Fi';
-  nameInput.focus();
-});
-
-const requestedTable = new URLSearchParams(location.search).get('table');
-if (requestedTable === 'lan' && isLocalHost) chooseTable('lan');
-if (requestedTable === 'internet' && location.origin === INTERNET_ORIGIN) chooseTable('internet');
 
 let installPrompt;
 window.addEventListener('beforeinstallprompt', (event) => {
@@ -136,13 +75,13 @@ function hideJoinPanel() {
 
 function connect(name) {
   if (location.protocol === 'file:') {
-    showToast('Start the game server, then open its Wi-Fi address.');
+    showToast('Open StackUp from its web link to play.');
     return;
   }
   displayName = name;
   manualClose = false;
   localStorage.setItem('stackup-name', name);
-  showToast(`Connecting to the ${tableMode} table…`);
+  showToast('Connecting to the table…');
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
   socket = new WebSocket(`${protocol}://${location.host}`);
   socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'join', name, token: localStorage.getItem('stackup-token') || '' })));
@@ -188,7 +127,7 @@ function connect(name) {
 joinForm.addEventListener('submit', (event) => {
   event.preventDefault();
   const name = nameInput.value.trim();
-  if (name && tableMode && !joinForm.hidden) connect(name);
+  if (name) connect(name);
 });
 
 if (location.protocol === 'file:') {
@@ -227,11 +166,18 @@ function leaveRoom() {
 }
 
 async function copyInviteLink() {
+  if (isLoopback && lanShareOrigin === location.origin) {
+    try {
+      const addresses = await fetch('/api/lan-addresses').then((response) => response.json());
+      if (Array.isArray(addresses) && addresses.length) lanShareOrigin = addresses[0];
+    } catch {}
+  }
+  const inviteOrigin = isLocalHost ? lanShareOrigin : location.origin;
   try {
-    await navigator.clipboard.writeText(tableMode === 'lan' ? lanShareOrigin : location.origin);
-    showToast(`${tableMode === 'lan' ? 'LAN' : 'Internet'} invite link copied`);
+    await navigator.clipboard.writeText(inviteOrigin);
+    showToast('Invite link copied');
   } catch {
-    showToast(`Invite players at ${tableMode === 'lan' ? new URL(lanShareOrigin).host : location.host}`);
+    showToast(`Invite players at ${new URL(inviteOrigin).host}`);
   }
 }
 

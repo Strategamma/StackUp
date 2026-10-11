@@ -1,7 +1,7 @@
 # Current task
 
-- Goal: make every join, table, lobby, final-score, and dialog button clear, well placed, and easy to tap.
-- Scope: button styling and responsive layout only; preserve actions and game rules.
-- Approach: audit each control, enlarge small touch targets where space permits, separate primary/secondary/destructive actions, and fit final-score actions below the leaderboard.
-- Risks: narrow phones and eight-player layouts can crowd controls; derive positions from viewport space and keep labels readable.
-- Verification: syntax and existing tests, plus targeted geometry checks at representative phone and desktop sizes. Browser preview remains blocked by the current local-access denial.
+- Goal: remove all manual Wi-Fi-address entry from joining and invitation.
+- Scope: join screen, origin selection, LAN invite sharing, and durable UI documentation; preserve gameplay and server topology.
+- Approach: automatically use the origin the player opened. Hosted URLs connect online; local/LAN URLs connect locally. When the host opened localhost, resolve the machine's shareable Wi-Fi URL behind the invite button.
+- Risks: browsers cannot discover an arbitrary server on another device; joining that local server must happen through the host's shared link. Never expose the underlying address as a form field.
+- Verification: syntax/full tests, hosted and local HTTP smoke checks, automatic invite-origin checks, and the required browser-client attempt.

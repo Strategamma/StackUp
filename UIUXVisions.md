@@ -11,7 +11,7 @@
 - Rules are available before and during play; first-time players see onboarding once, and tentative card selection previews the destination row or warns that a stack choice will be required.
 - Resolution replays authoritative events one at a time: cards travel to highlighted rows, scores increment after impact, and collected stacks trigger a red skull burst with an exact penalty label.
 - Decadence Arcade navigation is always obvious: direct on the join screen, confirmation-gated at an active table, and offered beside replay after the final score.
-- Joining begins with two clear destination cards: Internet from anywhere or LAN on the same Wi-Fi. LAN asks for the host computer's Wi-Fi address. The name step follows the destination choice; every table header exposes invite-link copying.
+- Joining is one step: enter a name on the opened table URL. Never ask players to choose infrastructure or type a network address; invite-link copying resolves the shareable origin automatically.
 - Premium motion adds card sheen, travel trails, safe-stack impact rings, and a crown/confetti/staged-rank victory sequence without changing game timing or rules.
 - Interactive elements consistently lift on hover, compress on press, expose a visible focus state, and keep equivalent tap behavior on touch devices.
 - Use amber for primary actions, dark outlined buttons for secondary actions, and red for confirmed destructive actions. Keep header controls and the main gameplay action at least 44px tall, and place final actions below all score rows.

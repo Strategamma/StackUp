@@ -14,6 +14,8 @@ Current layout pass: remove the redundant Exit control, keep D Arcade as the onl
 
 Current rewards pass: highlight the local player and score, add round-five leader crowns, replace session W/G shorthand with crown/medal iconography, highlight the viewer on final scores, and use Decadence's current 3D StackUp logo for browser/PWA identity.
 
+Current zero-config pass: remove table-mode and Wi-Fi-address entry; connect to the opened origin automatically and make the invite action resolve localhost to a shareable LAN URL behind the scenes.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.

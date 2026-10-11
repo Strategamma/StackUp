@@ -1,7 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { WebSocket } = require('ws');
 const { cardPoints, chooseRow, chooseBotCard, resolveSelections, placeCard, selectForDisconnectedPlayers, createGame, startGame, recordSessionGame } = require('../server');
+
+test('joining never asks a player for a network address', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  const client = fs.readFileSync(path.join(__dirname, '../public/game.js'), 'utf8');
+  assert.match(html, /id="join-form"/);
+  assert.doesNotMatch(html, /lan-address|HOST'S WI-FI ADDRESS|Open LAN table/i);
+  assert.doesNotMatch(client, /chooseTable|lanAddress|tableMode/);
+  assert.match(client, /fetch\('\/api\/lan-addresses'\)/);
+});
 
 test('penalty points follow the deck markings', () => {
   assert.equal(cardPoints(55), 7);
