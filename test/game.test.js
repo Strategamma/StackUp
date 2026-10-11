@@ -24,6 +24,10 @@ test('final scores separate current results, session awards, and rematch state',
   assert.match(client, /function drawVictoryBurst/);
   assert.match(client, /function shareResults/);
   assert.match(client, /Share result/);
+  assert.match(client, /SESSION SCOREBOARD/);
+  assert.match(client, /SESSION RECORD/);
+  assert.match(client, /More games/);
+  assert.match(client, /tone === 'share'/);
   assert.doesNotMatch(client, /\$\{player\.score\} NOW/);
 });
 

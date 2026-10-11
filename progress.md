@@ -20,6 +20,8 @@ Current final-screen pass: rebuild hierarchy and results readability, make ranki
 
 Current game-feel pass: turn final scores into an arcade match-complete cabinet with victory effects, competitive labels, animated score reveal, result sharing, and tighter game-night energy.
 
+Current final-touch pass: perfect hero spacing, cabinet contrast, personal-label placement, result terminology, and distinct action colors based on the latest deployed screenshot.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.
@@ -72,3 +74,5 @@ Current game-feel pass: turn final scores into an arcade match-complete cabinet 
 - Verification: 18 tests pass, including final-screen structure/text-state coverage; syntax and diff checks pass. Eight-player geometry retains positive row/action gaps at 320×480 through 1600×1338. Playwright still cannot launch its missing Chromium binary, and local browser access remains user-denied, so screenshot QA is limited to the supplied before-state plus static geometry.
 - Added arcade game feel to match complete: radial victory burst, framed score cabinet, champion/runner-up labels, victory-margin banner, animated score count-up, and three endgame actions (rematch/wait, share result, Arcade). Sharing uses the native share sheet or copies a challenge message.
 - Verification: all 18 tests and syntax/diff checks pass. Two-to-eight-player geometry keeps positive gaps at 320×480, phone portrait, desktop landscape, and the supplied screenshot proportions. Playwright was rerun but still cannot launch because its Chromium binary is unavailable; local browser access remains explicitly denied.
+- Final-touch screenshot pass: increased crown/title spacing, strengthened result and column-label contrast, shortened victory copy, renamed the session headings, attached YOU to the measured player name, and differentiated actions as amber Rematch, green Share Win/Result, and dark More Games.
+- Verification: all 18 tests and syntax/diff checks pass. Four-player geometry at the supplied 1415×640 CSS viewport and 2–8 player layouts from 320×480 upward retain positive action gaps. Playwright remains blocked by the missing Chromium executable.
