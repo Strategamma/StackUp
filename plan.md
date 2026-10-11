@@ -1,7 +1,7 @@
 # Current task
 
-- Goal: remove all manual Wi-Fi-address entry from joining and invitation.
-- Scope: join screen, origin selection, LAN invite sharing, and durable UI documentation; preserve gameplay and server topology.
-- Approach: automatically use the origin the player opened. Hosted URLs connect online; local/LAN URLs connect locally. When the host opened localhost, resolve the machine's shareable Wi-Fi URL behind the invite button.
-- Risks: browsers cannot discover an arbitrary server on another device; joining that local server must happen through the host's shared link. Never expose the underlying address as a form field.
-- Verification: syntax/full tests, hosted and local HTTP smoke checks, automatic invite-origin checks, and the required browser-client attempt.
+- Goal: turn final scores into a polished, readable, rewarding end-of-game experience for 2–8 players.
+- Scope: final-screen hierarchy, rankings, awards, session stats, responsive layout, guest/host actions, and hidden-toast artifact; preserve scoring and replay behavior.
+- Approach: add personalized outcome copy and tie-aware ranking, separate player/current-score/session columns, move awards into a dedicated session area, simplify first-game stats, and show guests the rematch state beside the exit action.
+- Risks: eight-player and short-phone layouts, tied winners, long names, and icon collisions. Derive compact geometry from available height and keep awards out of the name lane.
+- Verification: syntax/full tests, targeted static ranking/layout assertions, representative geometry checks, and the required browser-client attempt.

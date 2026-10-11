@@ -14,6 +14,16 @@ test('joining never asks a player for a network address', () => {
   assert.match(client, /fetch\('\/api\/lan-addresses'\)/);
 });
 
+test('final scores separate current results, session awards, and rematch state', () => {
+  const client = fs.readFileSync(path.join(__dirname, '../public/game.js'), 'utf8');
+  assert.match(client, /THIS GAME/);
+  assert.match(client, /SESSION/);
+  assert.match(client, /YOU PLACED/);
+  assert.match(client, /Host starts rematch/);
+  assert.match(client, /finalResults: finalRanking/);
+  assert.doesNotMatch(client, /\$\{player\.score\} NOW/);
+});
+
 test('penalty points follow the deck markings', () => {
   assert.equal(cardPoints(55), 7);
   assert.equal(cardPoints(22), 5);

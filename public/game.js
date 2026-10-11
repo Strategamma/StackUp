@@ -687,69 +687,125 @@ function drawCelebration(elapsed) {
   ctx.restore();
 }
 
+function ordinal(value) {
+  const remainder = value % 100;
+  if (remainder >= 11 && remainder <= 13) return `${value}TH`;
+  return `${value}${value % 10 === 1 ? 'ST' : value % 10 === 2 ? 'ND' : value % 10 === 3 ? 'RD' : 'TH'}`;
+}
+
 function drawFinished() {
-  header('FINAL SCORES', 'GAME OVER');
-  const compact = innerWidth < 500;
-  const short = innerHeight < 540;
-  const listTop = short ? 150 : 194;
-  const ranked = [...state.players].sort((a, b) => a.score - b.score);
-  const viewer = state.players.find((player) => player.id === state.you?.id);
-  const viewerAchievement = viewer?.session?.lastAchievement;
+  header('FINAL SCORES', `GAME ${state.gameNumber || 1}`);
+  const compact = innerWidth < 600;
+  const short = innerHeight < 620;
+  const ranked = [...state.players].sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+  const winningScore = ranked[0]?.score ?? 0;
+  const winners = ranked.filter((player) => player.score === winningScore);
+  const viewer = ranked.find((player) => player.id === state.you?.id);
+  const viewerRank = viewer ? ranked.findIndex((player) => player.score === viewer.score) + 1 : 0;
+  const viewerWon = Boolean(viewer && viewer.score === winningScore);
   const elapsed = Math.max(0, visualTime - sceneAnimationStart);
   const reveal = reduceMotion ? 1 : easeOut(elapsed / 620);
   drawCelebration(elapsed);
+
+  const crownY = short ? 70 : 86;
   const winnerLift = reduceMotion ? 0 : Math.sin(visualTime / 240) * 4;
-  drawCrown(innerWidth / 2, short ? 65 : 82, compact ? 17 : 21, winnerLift);
+  drawCrown(innerWidth / 2, crownY, compact ? 16 : 20, winnerLift);
+  const winnerTitle = winners.length === 1 ? `${winners[0].name.toUpperCase()} WINS!` : `${winners.length}-WAY TIE!`;
+  const outcome = viewer
+    ? viewerWon
+      ? `YOU TOOK THE TABLE · ${viewer.score} SKULL${viewer.score === 1 ? '' : 'S'}`
+      : `YOU PLACED ${ordinal(viewerRank)} · ${viewer.score} SKULL${viewer.score === 1 ? '' : 'S'}`
+    : 'Fewest skulls takes the table.';
   ctx.save(); ctx.globalAlpha = reveal; ctx.translate(0, (1 - reveal) * 18);
-  fitText(`${(ranked[0]?.name || 'Nobody').toUpperCase()} WINS!`, innerWidth / 2, short ? 94 : 124, innerWidth - 32, compact ? 30 : 42, 17, colors.cream, 'center', 900);
-  fitText(viewerAchievement ? `YOUR RUN · ${viewerAchievement}` : 'Fewest skulls. Finest play.', innerWidth / 2, short ? 120 : 158, innerWidth - 32, 13, 9, viewerAchievement ? colors.orange : colors.muted, 'center', viewerAchievement ? 900 : 700);
+  fitText(winnerTitle, innerWidth / 2, short ? 98 : 122, innerWidth - 32, compact ? 29 : 42, 17, colors.cream, 'center', 900);
+  fitText(outcome, innerWidth / 2, short ? 124 : 154, innerWidth - 32, compact ? 10 : 13, 8, viewerWon ? colors.orange : colors.muted, 'center', viewerWon ? 900 : 750);
+  if (viewer?.session?.lastAchievement) fitText(`ACHIEVEMENT · ${viewer.session.lastAchievement}`, innerWidth / 2, short ? 142 : 175, innerWidth - 32, 9, 7, colors.green, 'center', 900);
   ctx.restore();
-  const panelW = Math.min(520, innerWidth - 32);
+
+  const listTop = short ? 174 : 224;
+  const panelW = Math.min(compact ? innerWidth - 24 : 760, innerWidth - 32);
   const panelX = (innerWidth - panelW) / 2;
   const sessionBest = Math.min(...ranked.map((player) => player.session?.best).filter((score) => Number.isFinite(score)));
-  text(`TABLE SESSION · GAME ${state.gameNumber || 1}`, innerWidth / 2, listTop - 13, 9, colors.muted, 'center', 900);
-  const actionY = Math.min(innerHeight - 70, listTop + ranked.length * 46 + 16);
-  const rowStep = Math.min(46, (actionY - listTop - 48) / Math.max(1, ranked.length - 1));
-  const rowH = Math.min(38, rowStep - 4);
+  const gameNumber = state.gameNumber || 1;
+  text(`TABLE SESSION · ${gameNumber} GAME${gameNumber === 1 ? '' : 'S'}`, innerWidth / 2, listTop - 32, 9, colors.muted, 'center', 900);
+  if (!compact) {
+    text('PLAYER', panelX + 52, listTop - 13, 8, colors.muted, 'left', 900);
+    text('THIS GAME', panelX + panelW - 278, listTop - 13, 8, colors.muted, 'center', 900);
+    text('SESSION', panelX + panelW - 20, listTop - 13, 8, colors.muted, 'right', 900);
+  }
+
+  const idealActionY = listTop + ranked.length * 48 + 18;
+  const actionY = Math.min(innerHeight - 62, idealActionY);
+  const rowStep = Math.min(48, (actionY - listTop - 18) / Math.max(1, ranked.length));
+  const rowH = Math.max(30, Math.min(42, rowStep - 6));
   ranked.forEach((player, i) => {
     const rowReveal = reduceMotion ? 1 : easeOut((elapsed - 260 - i * 85) / 420);
     const y = listTop + i * rowStep;
-    ctx.save(); ctx.globalAlpha = rowReveal; ctx.translate((1 - rowReveal) * (i % 2 ? 28 : -28), 0);
+    const centerY = y + rowH / 2;
     const isViewer = player.id === state.you?.id;
-    const session = player.session || { games: 1, wins: i === 0 ? 1 : 0, best: player.score };
+    const isWinner = player.score === winningScore;
+    const rank = ranked.findIndex((candidate) => candidate.score === player.score) + 1;
+    const session = player.session || { games: 1, wins: isWinner ? 1 : 0, best: player.score };
     const hasSessionBest = session.best === sessionBest;
-    if (i === 0 || isViewer) { ctx.shadowColor = i === 0 ? 'rgba(245,166,35,.28)' : 'rgba(111,218,165,.22)'; ctx.shadowBlur = 18; }
-    const rowFill = i === 0 ? colors.orange : isViewer ? 'rgba(111,218,165,.14)' : 'rgba(255,247,233,.07)';
-    const rowStroke = isViewer ? colors.green : i === 0 ? colors.orange : colors.line;
-    roundedRect(panelX, y, panelW, rowH, 8, rowFill, rowStroke, isViewer ? 2.5 : i === 0 ? 2 : 1);
+    ctx.save(); ctx.globalAlpha = rowReveal; ctx.translate((1 - rowReveal) * (i % 2 ? 28 : -28), 0);
+    if (isWinner || isViewer) { ctx.shadowColor = isWinner ? 'rgba(244,173,62,.25)' : 'rgba(111,218,165,.2)'; ctx.shadowBlur = 16; }
+    const rowFill = isWinner ? colors.orange : isViewer ? 'rgba(111,218,165,.14)' : 'rgba(255,247,233,.065)';
+    const rowStroke = isViewer ? colors.green : isWinner ? colors.orange : colors.line;
+    roundedRect(panelX, y, panelW, rowH, 9, rowFill, rowStroke, isViewer ? 2.5 : isWinner ? 2 : 1);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
-    text(i === 0 ? '★' : `${i + 1}`, panelX + 24, y + rowH / 2, 14, i === 0 ? colors.red : colors.muted, 'center', 900);
-    const maxName = compact ? 7 : 13;
+
+    roundedRect(panelX + 10, centerY - 11, 28, 22, 11, isWinner ? colors.ink : 'rgba(239,221,191,.08)');
+    text(isWinner ? '★' : rank, panelX + 24, centerY, 11, isWinner ? colors.orange : colors.muted, 'center', 900);
+    const maxName = compact ? 11 : 18;
     const baseName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
-    const displayName = `${baseName}${isViewer ? ' · YOU' : ''}`;
-    const nameColor = i === 0 ? colors.ink : isViewer ? colors.green : colors.cream;
-    text(displayName, panelX + 48, y + (compact ? rowH * .36 : rowH / 2), compact ? 11 : 13, nameColor, 'left', 900);
-    ctx.save(); ctx.font = '900 13px Arial, Helvetica, sans-serif';
-    const nameEnd = panelX + 53 + ctx.measureText(displayName).width;
-    ctx.restore();
-    const maxCrowns = compact ? 2 : 4;
-    const shownCrowns = Math.min(session.wins || 0, maxCrowns);
-    for (let crown = 0; crown < shownCrowns; crown++) drawScoreCrown(nameEnd + crown * 15, y + (compact ? rowH * .36 : rowH / 2), 'challenger', crown);
-    let iconEnd = nameEnd + shownCrowns * 15;
-    if ((session.wins || 0) > maxCrowns) {
-      text(`×${session.wins}`, iconEnd - 2, y + (compact ? rowH * .36 : rowH / 2), 8, nameColor, 'left', 900);
-      iconEnd += 18;
+    const nameColor = isWinner ? colors.ink : isViewer ? colors.green : colors.cream;
+    const nameY = compact ? y + rowH * .34 : centerY;
+    const youChipX = compact ? panelX + panelW - 104 : panelX + Math.min(250, panelW * .36);
+    const nameLaneW = isViewer ? youChipX - (panelX + 58) : compact ? panelW - 130 : panelW - 360;
+    fitText(baseName, panelX + 50, nameY, nameLaneW, compact ? 11 : 13, 8, nameColor, 'left', 900);
+    if (isViewer) {
+      roundedRect(youChipX, nameY - 8, 38, 16, 8, 'rgba(111,218,165,.16)', colors.green, 1);
+      text('YOU', youChipX + 19, nameY, 7, isWinner ? colors.ink : colors.green, 'center', 900);
     }
-    if (hasSessionBest) drawBestMedal(iconEnd + 3, y + (compact ? rowH * .36 - 3 : rowH / 2 - 3), 5.5);
-    const record = compact ? `${player.score} PTS · ${session.games}G · B${session.best}` : `${player.score} NOW · ${session.games} GAMES · BEST ${session.best}`;
-    fitText(record, panelX + panelW - 18, y + (compact ? rowH * .76 : rowH / 2), compact ? panelW - 66 : 188, compact ? 9 : 10.5, 7, i === 0 ? colors.ink : colors.cream, 'right', 900);
+
+    if (compact) {
+      drawSkull(panelX + panelW - 28, nameY - 1, 4, isWinner ? colors.red : colors.red);
+      text(player.score, panelX + panelW - 42, nameY, 12, isWinner ? colors.ink : colors.cream, 'right', 900);
+      const awardY = y + rowH * .76;
+      const visibleWins = Math.min(session.wins || 0, 3);
+      if (visibleWins) {
+        for (let win = 0; win < visibleWins; win++) drawScoreCrown(panelX + 55 + win * 11, awardY, 'challenger', win);
+        if ((session.wins || 0) > 3) text(`×${session.wins}`, panelX + 89, awardY, 7, nameColor, 'left', 900);
+      } else text('0 WINS', panelX + 50, awardY, 7, nameColor, 'left', 900);
+      if (hasSessionBest) drawBestMedal(panelX + 113, awardY - 2, 4.5);
+      text(`BEST ${session.best}`, panelX + (hasSessionBest ? 122 : 105), awardY, 8, nameColor, 'left', 900);
+    } else {
+      const scoreX = panelX + panelW - 278;
+      drawSkull(scoreX - 17, centerY - 1, 4.5, colors.red);
+      text(player.score, scoreX + 2, centerY, 15, isWinner ? colors.ink : colors.cream, 'left', 900);
+      const winsX = panelX + panelW - 190;
+      roundedRect(winsX - 14, centerY - 13, 72, 26, 13, isWinner ? 'rgba(23,17,14,.12)' : 'rgba(239,221,191,.045)');
+      const visibleWins = Math.min(session.wins || 0, 3);
+      if (visibleWins) {
+        for (let win = 0; win < visibleWins; win++) drawScoreCrown(winsX - 3 + win * 13, centerY, 'challenger', win);
+        if ((session.wins || 0) > 3) text(`×${session.wins}`, winsX + 38, centerY, 7, isWinner ? colors.ink : colors.cream, 'left', 900);
+      } else text('0 WINS', winsX + 22, centerY, 7, isWinner ? colors.ink : colors.muted, 'center', 900);
+      const bestX = panelX + panelW - 102;
+      roundedRect(bestX - 13, centerY - 13, 94, 26, 13, isWinner ? 'rgba(23,17,14,.12)' : 'rgba(239,221,191,.045)');
+      if (hasSessionBest) drawBestMedal(bestX, centerY - 2, 5);
+      text(`BEST ${session.best}`, bestX + (hasSessionBest ? 13 : -1), centerY, 8, isWinner ? colors.ink : colors.cream, 'left', 900);
+    }
     ctx.restore();
   });
+
+  const actionW = Math.min(180, (innerWidth - 46) / 2);
   if (state.you?.id === state.hostId) {
-    const actionW = Math.min(156, (innerWidth - 46) / 2);
-    button('Play again', innerWidth / 2 - actionW - 6, actionY, actionW, 46, () => send('start'));
-    button('Back to arcade', innerWidth / 2 + 6, actionY, actionW, 46, () => { leaveTarget = 'arcade'; leavePrompt = true; }, true, 'secondary');
-  } else button('Back to arcade', innerWidth / 2 - 84, actionY, 168, 46, () => { leaveTarget = 'arcade'; leavePrompt = true; }, true, 'secondary');
+    button('Play again', innerWidth / 2 - actionW - 6, actionY, actionW, 48, () => send('start'));
+    button('Back to arcade', innerWidth / 2 + 6, actionY, actionW, 48, () => { leaveTarget = 'arcade'; leavePrompt = true; }, true, 'secondary');
+  } else {
+    button('Host starts rematch', innerWidth / 2 - actionW - 6, actionY, actionW, 48, () => {}, false);
+    button('Back to arcade', innerWidth / 2 + 6, actionY, actionW, 48, () => { leaveTarget = 'arcade'; leavePrompt = true; }, true, 'secondary');
+  }
 }
 
 function drawLeavePrompt() {
@@ -838,6 +894,17 @@ document.addEventListener('fullscreenchange', resize);
 window.render_game_to_text = () => {
   const replay = resolutionSnapshot();
   const crowns = scoreCrowns(state.players, state.turn, state.phase);
+  const finalRanking = state.phase === 'finished'
+    ? [...state.players].sort((a, b) => a.score - b.score || a.name.localeCompare(b.name)).map((player, index, ranked) => ({
+        playerId: player.id,
+        name: player.name,
+        score: player.score,
+        rank: ranked.findIndex((candidate) => candidate.score === player.score) + 1,
+        isYou: player.id === state.you?.id,
+        sessionWins: player.session?.wins || 0,
+        sessionBest: player.session?.best ?? null,
+      }))
+    : null;
   const sessionStandings = [...state.players]
     .sort((a, b) => (b.session?.wins || 0) - (a.session?.wins || 0) || (a.session?.best ?? Infinity) - (b.session?.best ?? Infinity))
     .map((player) => ({ id: player.id, name: player.name, ...player.session }));
@@ -849,6 +916,7 @@ window.render_game_to_text = () => {
     players: state.players,
     competitiveCrowns: state.players.filter((player) => crowns.has(player.id)).map((player) => ({ playerId: player.id, rank: crowns.get(player.id), score: player.score })),
     session: { gameNumber: state.gameNumber || 0, standings: sessionStandings },
+    finalResults: finalRanking,
     rows: (replay?.rows || state.rows).map((cards) => ({ cards, points: cards.reduce((sum, card) => sum + points(card), 0) })),
     rowChoice: state.rowChoice,
     resolution: replay ? { completed: replay.completed, total: resolutionReplay.events.length, active: replay.active, progress: replay.progress, done: replay.done } : null,

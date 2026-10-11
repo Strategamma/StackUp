@@ -25,7 +25,7 @@ Browser card game for 2–8 players sharing one server-authoritative table.
 - Hosts can add bots and remove non-host lobby seats. Bot selection weighs immediate penalty, gap, row length, and shedding high cards.
 - The server automatically advances after each resolution animation/read pause.
 - A table session persists across **Play again** while a human remains, tracking games, wins, best/average score, streaks, and achievements.
-- From displayed round five, current lowest and second-lowest scores receive large/small animated crowns. The local player and score are emphasized. Final standings identify the viewer, show wins as crowns, and medal the session-best score; ties share awards.
+- From displayed round five, current lowest and second-lowest scores receive large/small animated crowns. The local player and score are emphasized. Final standings are tie-aware, identify the viewer and placement, separate current score from session records, show wins as crowns, and medal the session-best score; ties share awards. Guests see that the host controls rematches.
 - UI follows Decadence Arcade: near-black grid, cream/beige cards, amber actions, red depth/skulls, green status, dark panels, and reduced-motion equivalents. Six row slots remain visible; the sixth has a red X.
 - The sole active leave control is **D Arcade**, with confirmation. Rows, guidance, actions, and hand use separate responsive bands.
 - Browser/PWA identity uses the official `https://decadenceinc.com/assets/stackup-3d.webp` artwork and locally generated PNG sizes.

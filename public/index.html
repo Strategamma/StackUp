@@ -75,8 +75,8 @@
     .rule strong { display: block; margin-bottom: 4px; color: var(--cream); font-size: 14px; }
     .skull-legend { padding: 14px; border-radius: 9px; background: rgba(255,69,77,.12); border: 1px solid rgba(255,69,77,.34); color: var(--cream); font-size: 12px; line-height: 1.7; text-align: center; }
     .help-tip { margin: 15px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
-    #toast { position: absolute; top: max(62px, calc(env(safe-area-inset-top) + 54px)); left: 50%; z-index: 9; transform: translate(-50%, -220%); padding: 11px 18px; border: 1px solid rgba(111,218,165,.35); border-radius: 999px; background: #17231e; color: var(--cream); box-shadow: 0 0 28px rgba(111,218,165,.12); font-size: 13px; font-weight: 800; transition: transform .25s ease; pointer-events: none; }
-    #toast.show { transform: translate(-50%, 0); }
+    #toast { position: absolute; top: max(62px, calc(env(safe-area-inset-top) + 54px)); left: 50%; z-index: 9; opacity: 0; transform: translate(-50%, calc(-100% - 90px)); padding: 11px 18px; border: 1px solid rgba(111,218,165,.35); border-radius: 999px; background: #17231e; color: var(--cream); box-shadow: 0 0 28px rgba(111,218,165,.12); font-size: 13px; font-weight: 800; transition: transform .25s ease, opacity .18s ease; pointer-events: none; }
+    #toast.show { opacity: 1; transform: translate(-50%, 0); }
     @keyframes mark-float { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
     @media (prefers-reduced-motion: reduce) { .mark { animation: none; } * { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
     @media (hover: none) { .join-step:hover { transform: none; } button:hover, .arcade-link:hover { transform: none; } }

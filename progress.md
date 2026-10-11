@@ -16,6 +16,8 @@ Current rewards pass: highlight the local player and score, add round-five leade
 
 Current zero-config pass: remove table-mode and Wi-Fi-address entry; connect to the opened origin automatically and make the invite action resolve localhost to a shareable LAN URL behind the scenes.
 
+Current final-screen pass: rebuild hierarchy and results readability, make ranking tie-aware, separate score/session awards, improve the guest rematch state, and remove the hidden-toast artifact visible above the header.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.
@@ -64,3 +66,5 @@ Current zero-config pass: remove table-mode and Wi-Fi-address entry; connect to 
 - Verification: all 16 game tests pass; syntax/diff checks pass; geometry checks at 320×480, 320×568, 375×667, 390×844, and 768×1024 show positive gaps between lobby/final actions and content. Visual browser review remains blocked by the previously denied local-browser permission.
 - Removed the Internet/LAN destination cards and the host-address form. The join screen now asks only for a name and automatically connects to the origin the player opened. Localhost invite sharing resolves `/api/lan-addresses` behind the button, so guests only tap the copied link.
 - Verification: 17 tests pass, including a regression that forbids network-address fields; syntax/diff checks pass; HTTP smoke shows the immediate join form and the automatically discovered `http://10.0.0.4:8080` share URL. Playwright was attempted but its Chromium executable remains unavailable.
+- Rebuilt final scores with a personalized placement summary, tied-winner/rank handling, Player/This Game/Session lanes, clean skull totals, dedicated crown-win and medal-best chips, responsive 2–8 player geometry, and an explicit guest rematch state. Hidden toast now fully leaves the viewport instead of peeking above the header.
+- Verification: 18 tests pass, including final-screen structure/text-state coverage; syntax and diff checks pass. Eight-player geometry retains positive row/action gaps at 320×480 through 1600×1338. Playwright still cannot launch its missing Chromium binary, and local browser access remains user-denied, so screenshot QA is limited to the supplied before-state plus static geometry.

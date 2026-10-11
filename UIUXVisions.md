@@ -21,6 +21,7 @@
 - Lobby hosts get a compact remove control on every non-host seat, followed by a confirmation dialog for protection against accidental taps.
 - Status copy should answer “what happened?” or “what do I do next?”; prefer in-context table guidance over transient toast notifications.
 - The final leaderboard doubles as the table-session scoreboard: current score plus wins/games, with personal bests, table wins, flawless wins, and win streaks as restrained achievement callouts.
+- Final results use three stable lanes—player, this game, session—so names never collide with awards. Personal placement is stated in the hero; tied scores share ranks; guests see the rematch state instead of an unexplained exit-only ending.
 - Reward iconography is literal: one crown per session win and a medal for the best session score. Highlight the viewer with a green outline and explicit YOU label.
 - From round five, put an animated crown on the current lowest-score avatar and a smaller crown on the second-lowest; tied scores share the same crown tier. Emphasize the local player's live score with an amber badge.
 - Browser and installed-app identity use Decadence's official 3D StackUp mark.

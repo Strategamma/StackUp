@@ -1,4 +1,4 @@
-const CACHE = 'stackup-v13';
+const CACHE = 'stackup-v14';
 const APP_SHELL = [
   '/',
   '/game.js',
