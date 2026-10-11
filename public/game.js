@@ -181,6 +181,26 @@ async function copyInviteLink() {
   }
 }
 
+async function shareResults() {
+  const ranked = [...state.players].sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+  const viewer = ranked.find((player) => player.id === state.you?.id);
+  if (!viewer) return;
+  const rank = ranked.findIndex((player) => player.score === viewer.score) + 1;
+  const result = rank === 1
+    ? `I won StackUp with ${viewer.score} skull${viewer.score === 1 ? '' : 's'}!`
+    : `I placed ${ordinal(rank).toLowerCase()} in StackUp with ${viewer.score} skull${viewer.score === 1 ? '' : 's'}.`;
+  const shareData = { title: 'StackUp results', text: `${result} Think you can beat me?`, url: location.origin };
+  try {
+    if (navigator.share) await navigator.share(shareData);
+    else {
+      await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+      showToast('Bragging rights copied');
+    }
+  } catch (error) {
+    if (error?.name !== 'AbortError') showToast('Could not share results');
+  }
+}
+
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add('show');
@@ -687,6 +707,32 @@ function drawCelebration(elapsed) {
   ctx.restore();
 }
 
+function drawVictoryBurst(x, y, elapsed) {
+  const pulse = reduceMotion ? 1 : .92 + Math.sin(elapsed / 240) * .08;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(reduceMotion ? 0 : elapsed / 16000);
+  ctx.globalAlpha = .2;
+  for (let i = 0; i < 18; i++) {
+    ctx.rotate(Math.PI * 2 / 18);
+    ctx.fillStyle = i % 2 ? colors.orange : colors.red;
+    ctx.beginPath();
+    ctx.moveTo(26 * pulse, -3);
+    ctx.lineTo(68 * pulse, -8);
+    ctx.lineTo(68 * pulse, 8);
+    ctx.lineTo(26 * pulse, 3);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.globalAlpha = .35;
+  ctx.strokeStyle = colors.orange;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, 0, 31 * pulse, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = .12;
+  ctx.beginPath(); ctx.arc(0, 0, 78 * pulse, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+
 function ordinal(value) {
   const remainder = value % 100;
   if (remainder >= 11 && remainder <= 13) return `${value}TH`;
@@ -709,6 +755,7 @@ function drawFinished() {
 
   const crownY = short ? 70 : 86;
   const winnerLift = reduceMotion ? 0 : Math.sin(visualTime / 240) * 4;
+  drawVictoryBurst(innerWidth / 2, crownY - 2, elapsed);
   drawCrown(innerWidth / 2, crownY, compact ? 16 : 20, winnerLift);
   const winnerTitle = winners.length === 1 ? `${winners[0].name.toUpperCase()} WINS!` : `${winners.length}-WAY TIE!`;
   const outcome = viewer
@@ -716,18 +763,22 @@ function drawFinished() {
       ? `YOU TOOK THE TABLE · ${viewer.score} SKULL${viewer.score === 1 ? '' : 'S'}`
       : `YOU PLACED ${ordinal(viewerRank)} · ${viewer.score} SKULL${viewer.score === 1 ? '' : 'S'}`
     : 'Fewest skulls takes the table.';
+  const nextScore = ranked.find((player) => player.score > winningScore)?.score;
+  const matchCallout = winners.length > 1 ? 'DEAD HEAT · SHARED GLORY' : nextScore === undefined ? 'TABLE CHAMPION' : `VICTORY MARGIN · ${nextScore - winningScore} SKULL${nextScore - winningScore === 1 ? '' : 'S'}`;
   ctx.save(); ctx.globalAlpha = reveal; ctx.translate(0, (1 - reveal) * 18);
   fitText(winnerTitle, innerWidth / 2, short ? 98 : 122, innerWidth - 32, compact ? 29 : 42, 17, colors.cream, 'center', 900);
   fitText(outcome, innerWidth / 2, short ? 124 : 154, innerWidth - 32, compact ? 10 : 13, 8, viewerWon ? colors.orange : colors.muted, 'center', viewerWon ? 900 : 750);
-  if (viewer?.session?.lastAchievement) fitText(`ACHIEVEMENT · ${viewer.session.lastAchievement}`, innerWidth / 2, short ? 142 : 175, innerWidth - 32, 9, 7, colors.green, 'center', 900);
+  roundedRect(innerWidth / 2 - 94, short ? 132 : 166, 188, 22, 11, 'rgba(244,173,62,.1)', 'rgba(244,173,62,.38)', 1);
+  fitText(matchCallout, innerWidth / 2, short ? 143 : 177, 176, 8, 6, colors.orange, 'center', 900);
+  if (!short && viewer?.session?.lastAchievement) fitText(`UNLOCKED · ${viewer.session.lastAchievement}`, innerWidth / 2, 199, innerWidth - 32, 9, 7, colors.green, 'center', 900);
   ctx.restore();
 
-  const listTop = short ? 174 : 224;
+  const listTop = short ? 174 : 246;
   const panelW = Math.min(compact ? innerWidth - 24 : 760, innerWidth - 32);
   const panelX = (innerWidth - panelW) / 2;
   const sessionBest = Math.min(...ranked.map((player) => player.session?.best).filter((score) => Number.isFinite(score)));
   const gameNumber = state.gameNumber || 1;
-  text(`TABLE SESSION · ${gameNumber} GAME${gameNumber === 1 ? '' : 'S'}`, innerWidth / 2, listTop - 32, 9, colors.muted, 'center', 900);
+  text(`TABLE SESSION · ${gameNumber} GAME${gameNumber === 1 ? '' : 'S'}`, innerWidth / 2, listTop - (short ? 10 : 32), 9, colors.muted, 'center', 900);
   if (!compact) {
     text('PLAYER', panelX + 52, listTop - 13, 8, colors.muted, 'left', 900);
     text('THIS GAME', panelX + panelW - 278, listTop - 13, 8, colors.muted, 'center', 900);
@@ -737,7 +788,18 @@ function drawFinished() {
   const idealActionY = listTop + ranked.length * 48 + 18;
   const actionY = Math.min(innerHeight - 62, idealActionY);
   const rowStep = Math.min(48, (actionY - listTop - 18) / Math.max(1, ranked.length));
-  const rowH = Math.max(30, Math.min(42, rowStep - 6));
+  const dense = rowStep < 34;
+  const rowH = Math.max(22, Math.min(42, rowStep - (dense ? 4 : 6)));
+  const boardBottom = listTop + Math.max(1, ranked.length) * rowStep - 6;
+  const boardTopOffset = short ? 14 : 27;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.38)'; ctx.shadowBlur = 28; ctx.shadowOffsetY = 12;
+  roundedRect(panelX - 14, listTop - boardTopOffset, panelW + 28, boardBottom - listTop + boardTopOffset + 16, 18, 'rgba(35,27,24,.72)', 'rgba(244,173,62,.28)', 1.5);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  for (const screwX of [panelX - 3, panelX + panelW + 3]) {
+    ctx.beginPath(); ctx.arc(screwX, listTop - boardTopOffset / 2, 2.5, 0, Math.PI * 2); ctx.fillStyle = colors.orange; ctx.fill();
+  }
+  ctx.restore();
   ranked.forEach((player, i) => {
     const rowReveal = reduceMotion ? 1 : easeOut((elapsed - 260 - i * 85) / 420);
     const y = listTop + i * rowStep;
@@ -759,7 +821,7 @@ function drawFinished() {
     const maxName = compact ? 11 : 18;
     const baseName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
     const nameColor = isWinner ? colors.ink : isViewer ? colors.green : colors.cream;
-    const nameY = compact ? y + rowH * .34 : centerY;
+    const nameY = dense ? centerY : compact ? y + rowH * .34 : y + rowH * .38;
     const youChipX = compact ? panelX + panelW - 104 : panelX + Math.min(250, panelW * .36);
     const nameLaneW = isViewer ? youChipX - (panelX + 58) : compact ? panelW - 130 : panelW - 360;
     fitText(baseName, panelX + 50, nameY, nameLaneW, compact ? 11 : 13, 8, nameColor, 'left', 900);
@@ -767,22 +829,30 @@ function drawFinished() {
       roundedRect(youChipX, nameY - 8, 38, 16, 8, 'rgba(111,218,165,.16)', colors.green, 1);
       text('YOU', youChipX + 19, nameY, 7, isWinner ? colors.ink : colors.green, 'center', 900);
     }
+    if (!compact && !dense) {
+      const competitiveLabel = isWinner ? 'CHAMPION' : rank === 2 ? 'RUNNER-UP' : `${ordinal(rank)} PLACE`;
+      text(competitiveLabel, panelX + 50, y + rowH * .72, 7, isWinner ? '#5b2d12' : isViewer ? colors.green : colors.muted, 'left', 900);
+    }
 
+    const scoreProgress = reduceMotion ? 1 : easeOut((elapsed - 380 - i * 80) / 620);
+    const visibleScore = Math.round(player.score * scoreProgress);
     if (compact) {
       drawSkull(panelX + panelW - 28, nameY - 1, 4, isWinner ? colors.red : colors.red);
-      text(player.score, panelX + panelW - 42, nameY, 12, isWinner ? colors.ink : colors.cream, 'right', 900);
-      const awardY = y + rowH * .76;
-      const visibleWins = Math.min(session.wins || 0, 3);
-      if (visibleWins) {
-        for (let win = 0; win < visibleWins; win++) drawScoreCrown(panelX + 55 + win * 11, awardY, 'challenger', win);
-        if ((session.wins || 0) > 3) text(`×${session.wins}`, panelX + 89, awardY, 7, nameColor, 'left', 900);
-      } else text('0 WINS', panelX + 50, awardY, 7, nameColor, 'left', 900);
-      if (hasSessionBest) drawBestMedal(panelX + 113, awardY - 2, 4.5);
-      text(`BEST ${session.best}`, panelX + (hasSessionBest ? 122 : 105), awardY, 8, nameColor, 'left', 900);
+      text(visibleScore, panelX + panelW - 42, nameY, 12, isWinner ? colors.ink : colors.cream, 'right', 900);
+      if (!dense) {
+        const awardY = y + rowH * .76;
+        const visibleWins = Math.min(session.wins || 0, 3);
+        if (visibleWins) {
+          for (let win = 0; win < visibleWins; win++) drawScoreCrown(panelX + 55 + win * 11, awardY, 'challenger', win);
+          if ((session.wins || 0) > 3) text(`×${session.wins}`, panelX + 89, awardY, 7, nameColor, 'left', 900);
+        } else text('0 WINS', panelX + 50, awardY, 7, nameColor, 'left', 900);
+        if (hasSessionBest) drawBestMedal(panelX + 113, awardY - 2, 4.5);
+        text(`BEST ${session.best}`, panelX + (hasSessionBest ? 122 : 105), awardY, 8, nameColor, 'left', 900);
+      }
     } else {
       const scoreX = panelX + panelW - 278;
       drawSkull(scoreX - 17, centerY - 1, 4.5, colors.red);
-      text(player.score, scoreX + 2, centerY, 15, isWinner ? colors.ink : colors.cream, 'left', 900);
+      text(visibleScore, scoreX + 2, centerY, 15, isWinner ? colors.ink : colors.cream, 'left', 900);
       const winsX = panelX + panelW - 190;
       roundedRect(winsX - 14, centerY - 13, 72, 26, 13, isWinner ? 'rgba(23,17,14,.12)' : 'rgba(239,221,191,.045)');
       const visibleWins = Math.min(session.wins || 0, 3);
@@ -798,14 +868,16 @@ function drawFinished() {
     ctx.restore();
   });
 
-  const actionW = Math.min(180, (innerWidth - 46) / 2);
+  const actionGap = 8;
+  const actionW = Math.min(158, (innerWidth - 32 - actionGap * 2) / 3);
+  const actionStart = innerWidth / 2 - (actionW * 3 + actionGap * 2) / 2;
   if (state.you?.id === state.hostId) {
-    button('Play again', innerWidth / 2 - actionW - 6, actionY, actionW, 48, () => send('start'));
-    button('Back to arcade', innerWidth / 2 + 6, actionY, actionW, 48, () => { leaveTarget = 'arcade'; leavePrompt = true; }, true, 'secondary');
+    button('Rematch', actionStart, actionY, actionW, 48, () => send('start'));
   } else {
-    button('Host starts rematch', innerWidth / 2 - actionW - 6, actionY, actionW, 48, () => {}, false);
-    button('Back to arcade', innerWidth / 2 + 6, actionY, actionW, 48, () => { leaveTarget = 'arcade'; leavePrompt = true; }, true, 'secondary');
+    button('Waiting for host', actionStart, actionY, actionW, 48, () => {}, false);
   }
+  button('Share result', actionStart + actionW + actionGap, actionY, actionW, 48, shareResults);
+  button('Arcade', actionStart + (actionW + actionGap) * 2, actionY, actionW, 48, () => { leaveTarget = 'arcade'; leavePrompt = true; }, true, 'secondary');
 }
 
 function drawLeavePrompt() {

@@ -19,8 +19,11 @@ test('final scores separate current results, session awards, and rematch state',
   assert.match(client, /THIS GAME/);
   assert.match(client, /SESSION/);
   assert.match(client, /YOU PLACED/);
-  assert.match(client, /Host starts rematch/);
+  assert.match(client, /Waiting for host/);
   assert.match(client, /finalResults: finalRanking/);
+  assert.match(client, /function drawVictoryBurst/);
+  assert.match(client, /function shareResults/);
+  assert.match(client, /Share result/);
   assert.doesNotMatch(client, /\$\{player\.score\} NOW/);
 });
 

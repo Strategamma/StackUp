@@ -18,6 +18,8 @@ Current zero-config pass: remove table-mode and Wi-Fi-address entry; connect to 
 
 Current final-screen pass: rebuild hierarchy and results readability, make ranking tie-aware, separate score/session awards, improve the guest rematch state, and remove the hidden-toast artifact visible above the header.
 
+Current game-feel pass: turn final scores into an arcade match-complete cabinet with victory effects, competitive labels, animated score reveal, result sharing, and tighter game-night energy.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.
@@ -68,3 +70,5 @@ Current final-screen pass: rebuild hierarchy and results readability, make ranki
 - Verification: 17 tests pass, including a regression that forbids network-address fields; syntax/diff checks pass; HTTP smoke shows the immediate join form and the automatically discovered `http://10.0.0.4:8080` share URL. Playwright was attempted but its Chromium executable remains unavailable.
 - Rebuilt final scores with a personalized placement summary, tied-winner/rank handling, Player/This Game/Session lanes, clean skull totals, dedicated crown-win and medal-best chips, responsive 2–8 player geometry, and an explicit guest rematch state. Hidden toast now fully leaves the viewport instead of peeking above the header.
 - Verification: 18 tests pass, including final-screen structure/text-state coverage; syntax and diff checks pass. Eight-player geometry retains positive row/action gaps at 320×480 through 1600×1338. Playwright still cannot launch its missing Chromium binary, and local browser access remains user-denied, so screenshot QA is limited to the supplied before-state plus static geometry.
+- Added arcade game feel to match complete: radial victory burst, framed score cabinet, champion/runner-up labels, victory-margin banner, animated score count-up, and three endgame actions (rematch/wait, share result, Arcade). Sharing uses the native share sheet or copies a challenge message.
+- Verification: all 18 tests and syntax/diff checks pass. Two-to-eight-player geometry keeps positive gaps at 320×480, phone portrait, desktop landscape, and the supplied screenshot proportions. Playwright was rerun but still cannot launch because its Chromium binary is unavailable; local browser access remains explicitly denied.
