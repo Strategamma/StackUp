@@ -3,6 +3,13 @@ const ctx = canvas.getContext('2d');
 const joinPanel = document.querySelector('#join');
 const joinForm = document.querySelector('#join-form');
 const nameInput = document.querySelector('#name');
+const internetModeButton = document.querySelector('#internet-mode');
+const lanModeButton = document.querySelector('#lan-mode');
+const lanDetail = document.querySelector('#lan-detail');
+const lanForm = document.querySelector('#lan-form');
+const lanAddress = document.querySelector('#lan-address');
+const lanTip = document.querySelector('#lan-tip');
+const seatHeading = document.querySelector('#seat-heading');
 const installButton = document.querySelector('#install-app');
 const showHelpButton = document.querySelector('#show-help');
 const helpPanel = document.querySelector('#help');
@@ -29,6 +36,73 @@ let resolutionReplay = null;
 let resolutionBaseRows = null;
 let displayName = localStorage.getItem('stackup-name') || '';
 nameInput.value = displayName;
+const INTERNET_ORIGIN = 'https://stackup.decadenceinc.com';
+const isLocalHost = /^(localhost|127\.0\.0\.1|\d{1,3}(?:\.\d{1,3}){3}|[^.]+(?:\.local)?)$/i.test(location.hostname);
+const isLoopback = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+let tableMode = null;
+let lanShareOrigin = location.origin;
+
+if (isLoopback) {
+  fetch('/api/lan-addresses')
+    .then((response) => response.json())
+    .then((addresses) => {
+      if (!Array.isArray(addresses) || !addresses.length) return;
+      lanShareOrigin = addresses[0];
+      lanAddress.value = new URL(lanShareOrigin).host;
+      lanTip.textContent = `This computer's Wi-Fi address is ${lanAddress.value}. Use it on devices connected to the same Wi-Fi, or enter another host's address below.`;
+    })
+    .catch(() => {});
+}
+
+function chooseTable(mode) {
+  tableMode = mode;
+  internetModeButton.setAttribute('aria-pressed', String(mode === 'internet'));
+  lanModeButton.setAttribute('aria-pressed', String(mode === 'lan'));
+  lanDetail.hidden = mode !== 'lan';
+  joinForm.hidden = mode === 'lan' && !isLocalHost;
+  if (mode === 'internet') {
+    if (location.origin !== INTERNET_ORIGIN) {
+      location.assign(`${INTERNET_ORIGIN}/?table=internet`);
+      return;
+    }
+    seatHeading.textContent = '✦ Internet table · play from anywhere';
+    nameInput.focus();
+  } else {
+    if (isLocalHost && !lanAddress.value) lanAddress.value = isLoopback ? new URL(lanShareOrigin).host : location.host;
+    if (isLocalHost) {
+      if (!isLoopback) lanTip.textContent = `You're on this LAN table at ${location.host}. To switch tables, enter another host's Wi-Fi address below.`;
+      seatHeading.textContent = '⌁ LAN table · same Wi-Fi';
+      nameInput.focus();
+    } else {
+      lanAddress.focus();
+    }
+  }
+}
+
+internetModeButton.addEventListener('click', () => chooseTable('internet'));
+lanModeButton.addEventListener('click', () => chooseTable('lan'));
+lanForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const input = lanAddress.value.trim();
+  const address = /^[a-z]+:\/\//i.test(input) ? input : `http://${input}`;
+  let target;
+  try { target = new URL(address); } catch { showToast('Enter a valid Wi-Fi address.'); return; }
+  if (!['http:', 'https:'].includes(target.protocol) || !target.hostname || target.username || target.password) {
+    showToast('Enter a valid Wi-Fi address.');
+    return;
+  }
+  if (target.origin !== location.origin) {
+    location.assign(`${target.origin}/?table=lan`);
+    return;
+  }
+  joinForm.hidden = false;
+  seatHeading.textContent = '⌁ LAN table · same Wi-Fi';
+  nameInput.focus();
+});
+
+const requestedTable = new URLSearchParams(location.search).get('table');
+if (requestedTable === 'lan' && isLocalHost) chooseTable('lan');
+if (requestedTable === 'internet' && location.origin === INTERNET_ORIGIN) chooseTable('internet');
 
 let installPrompt;
 window.addEventListener('beforeinstallprompt', (event) => {
@@ -68,7 +142,7 @@ function connect(name) {
   displayName = name;
   manualClose = false;
   localStorage.setItem('stackup-name', name);
-  showToast('Connecting to the table…');
+  showToast(`Connecting to the ${tableMode} table…`);
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
   socket = new WebSocket(`${protocol}://${location.host}`);
   socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'join', name, token: localStorage.getItem('stackup-token') || '' })));
@@ -114,13 +188,11 @@ function connect(name) {
 joinForm.addEventListener('submit', (event) => {
   event.preventDefault();
   const name = nameInput.value.trim();
-  if (name) connect(name);
+  if (name && tableMode && !joinForm.hidden) connect(name);
 });
 
 if (location.protocol === 'file:') {
   setTimeout(() => showToast('This page needs the local game server.'), 100);
-} else if (displayName && localStorage.getItem('stackup-token')) {
-  connect(displayName);
 }
 
 function send(type, extra = {}) {
@@ -156,10 +228,10 @@ function leaveRoom() {
 
 async function copyInviteLink() {
   try {
-    await navigator.clipboard.writeText(location.origin);
-    showToast('Invite link copied');
+    await navigator.clipboard.writeText(tableMode === 'lan' ? lanShareOrigin : location.origin);
+    showToast(`${tableMode === 'lan' ? 'LAN' : 'Internet'} invite link copied`);
   } catch {
-    showToast(`Invite players at ${location.host}`);
+    showToast(`Invite players at ${tableMode === 'lan' ? new URL(lanShareOrigin).host : location.host}`);
   }
 }
 
@@ -322,18 +394,21 @@ function drawCard(card, x, y, w, h, selected = false, compact = false, entrance 
   ctx.restore();
 }
 
-function button(label, x, y, w, h, onClick, active = true) {
+function button(label, x, y, w, h, onClick, active = true, tone = 'primary') {
   const hovered = active && contains(x, y, w, h);
   const pressed = hovered && pointerState.down;
   const lift = reduceMotion ? 0 : pressed ? 4 : hovered ? -3 : 0;
   const shadowY = pressed ? 2 : hovered ? 10 : 7;
+  const surface = !active ? '#393330' : tone === 'danger' ? (hovered ? '#ff6670' : colors.red) : tone === 'secondary' ? (hovered ? '#51413a' : '#332a26') : (hovered ? '#ffc35c' : colors.orange);
+  const foreground = !active ? '#a89b91' : tone === 'secondary' ? colors.cream : colors.ink;
+  const edge = !active ? '#554c47' : tone === 'secondary' ? 'rgba(239,221,191,.45)' : surface;
   if (hovered) {
     ctx.save(); ctx.shadowColor = 'rgba(244,173,62,.3)'; ctx.shadowBlur = 22;
     roundedRect(x - 2, y - 3, w + 4, h + 6, 10, 'rgba(244,173,62,.08)'); ctx.restore();
   }
-  roundedRect(x + 5, y + shadowY, w, h, 8, active ? colors.red : '#2a2624');
-  roundedRect(x, y + lift, w, h, 8, active ? (hovered ? '#ffc35c' : colors.orange) : '#393330', active ? colors.orange : '#554c47', 1.5);
-  text(label.toUpperCase(), x + w / 2, y + h / 2 + lift, 12, active ? colors.ink : '#817771', 'center', 900);
+  roundedRect(x + 5, y + shadowY, w, h, 8, active ? (tone === 'secondary' ? '#171311' : '#822b31') : '#2a2624');
+  roundedRect(x, y + lift, w, h, 8, surface, edge, 1.5);
+  fitText(label.toUpperCase(), x + w / 2, y + h / 2 + lift, w - 12, 12, 9, foreground, 'center', 900);
   if (active) hitAreas.push({ x, y, w, h, onClick });
 }
 
@@ -346,56 +421,64 @@ function headerControl(label, x, y, w, h, onClick, size = 10) {
   hitAreas.push({ x, y, w, h, onClick });
 }
 
-function removeSeatControl(x, y, player) {
-  const size = 28;
-  const hovered = contains(x, y, size, size);
+function removeSeatControl(x, y, rowH, player) {
+  const size = Math.min(32, rowH - 7);
+  const iconY = y + (rowH - 7 - size) / 2;
+  const hovered = contains(x - 5, y - 3, size + 10, rowH - 1);
   const pressed = hovered && pointerState.down;
   const offset = reduceMotion ? 0 : pressed ? 2 : hovered ? -2 : 0;
-  roundedRect(x, y + offset, size, size, 8, hovered ? 'rgba(239,70,80,.24)' : 'rgba(239,70,80,.08)', hovered ? colors.red : 'rgba(239,70,80,.38)', hovered ? 1.5 : 1);
-  text('×', x + size / 2, y + size / 2 + offset - 1, 17, hovered ? '#ff7880' : colors.red, 'center', 900);
-  hitAreas.push({ x, y, w: size, h: size, onClick: () => { removePromptPlayer = player; } });
+  roundedRect(x, iconY + offset, size, size, 8, hovered ? 'rgba(239,70,80,.24)' : 'rgba(239,70,80,.08)', hovered ? colors.red : 'rgba(239,70,80,.38)', hovered ? 1.5 : 1);
+  text('×', x + size / 2, iconY + size / 2 + offset - 1, 17, hovered ? '#ff7880' : colors.red, 'center', 900);
+  hitAreas.push({ x: x - 5, y: y - 3, w: size + 10, h: rowH - 1, onClick: () => { removePromptPlayer = player; } });
 }
 
 function header(title, subtitle) {
   const compact = innerWidth < 560;
-  headerControl(compact ? 'D' : 'D  ARCADE', 12, 10, compact ? 38 : 82, 34, () => { leaveTarget = 'arcade'; leavePrompt = true; }, compact ? 12 : 9);
-  text(title, innerWidth / 2, 27, innerWidth < 500 ? 10 : 13, colors.cream, 'center', 900);
-  headerControl('?', innerWidth - 46, 10, 34, 34, showHelp, 15);
-  headerControl('↗', innerWidth - 86, 10, 34, 34, copyInviteLink, 15);
-  if (innerWidth >= 720) text(subtitle, innerWidth - 98, 27, 11, colors.muted, 'right', 800);
+  headerControl(compact ? 'D' : 'D  ARCADE', 12, 4, compact ? 44 : 82, 44, () => { leaveTarget = 'arcade'; leavePrompt = true; }, compact ? 12 : 9);
+  fitText(title, innerWidth / 2, 26, compact ? Math.max(100, innerWidth - 220) : Math.min(380, innerWidth - 230), innerWidth < 500 ? 10 : 13, 7, colors.cream, 'center', 900);
+  headerControl('?', innerWidth - 56, 4, 44, 44, showHelp, 16);
+  headerControl('LINK', innerWidth - 106, 4, 44, 44, copyInviteLink, 9);
+  if (innerWidth >= 720) text(subtitle, innerWidth - 112, 26, 11, colors.muted, 'right', 800);
   ctx.strokeStyle = colors.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(18, 50); ctx.lineTo(innerWidth - 18, 50); ctx.stroke();
 }
 
 function drawLobby() {
   header('THE TABLE', `${state.players.length}/8 PLAYERS`);
   const narrow = innerWidth < 600;
+  const short = innerHeight < 600;
   const panelW = Math.min(600, innerWidth - 32);
   const panelX = (innerWidth - panelW) / 2;
-  text('GATHER YOUR CREW', innerWidth / 2, 88, narrow ? 25 : 34, colors.cream, 'center', 900);
-  text('Everyone joins from the same link', innerWidth / 2, 120, 12, colors.muted, 'center', 650);
-  roundedRect(panelX, 146, panelW, Math.min(innerHeight - 250, 390), 14, colors.panel, colors.line, 1.5);
-  const rowH = Math.min(52, (Math.min(innerHeight - 265, 380) - 24) / 8);
+  const panelTop = short ? 116 : 146;
+  const bottomLimit = innerHeight - 76;
+  text('GATHER YOUR CREW', innerWidth / 2, short ? 72 : 88, narrow ? 25 : 34, colors.cream, 'center', 900);
+  if (!short) text('Everyone joins from the same link', innerWidth / 2, 120, 12, colors.muted, 'center', 650);
+  const panelH = Math.min(390, bottomLimit - panelTop - 12);
+  const actionY = Math.min(bottomLimit, panelTop + panelH + 18);
+  roundedRect(panelX, panelTop, panelW, panelH, 14, colors.panel, colors.line, 1.5);
+  const rowH = Math.min(52, (panelH - 20) / 8);
   const isHost = state.you?.id === state.hostId;
   state.players.forEach((player, i) => {
-    const y = 158 + i * rowH;
+    const y = panelTop + 12 + i * rowH;
+    const rowCenter = y + (rowH - 7) / 2;
+    const avatarSize = Math.min(28, rowH - 9);
     roundedRect(panelX + 12, y, panelW - 24, rowH - 7, 8, player.id === state.you?.id ? 'rgba(255,179,63,.18)' : 'rgba(255,247,233,.045)', player.id === state.you?.id ? 'rgba(255,179,63,.48)' : null);
-    roundedRect(panelX + 23, y + 8, 28, 28, 9, i % 2 ? colors.green : colors.orange, colors.ink, 1.5);
-    text(player.name.slice(0, 1).toUpperCase(), panelX + 37, y + 22, 13, i % 2 ? '#fff' : colors.ink, 'center', 900);
+    roundedRect(panelX + 23, rowCenter - avatarSize / 2, avatarSize, avatarSize, 9, i % 2 ? colors.green : colors.orange, colors.ink, 1.5);
+    text(player.name.slice(0, 1).toUpperCase(), panelX + 23 + avatarSize / 2, rowCenter, 13, i % 2 ? '#fff' : colors.ink, 'center', 900);
     const maxName = narrow ? 13 : 18;
     const displayName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
-    text(displayName + (player.isBot ? '  · BOT' : player.left ? '  · LEFT' : player.id === state.you?.id ? '  (YOU)' : ''), panelX + 62, y + 21, 14, colors.cream, 'left', 800);
-    if (player.id === state.hostId) text('HOST', panelX + panelW - 24, y + 21, 10, colors.red, 'right', 900);
-    else if (isHost) removeSeatControl(panelX + panelW - 52, y + 7, player);
+    text(displayName + (player.isBot ? '  · BOT' : player.left ? '  · LEFT' : player.id === state.you?.id ? '  (YOU)' : ''), panelX + 62, rowCenter, 14, colors.cream, 'left', 800);
+    if (player.id === state.hostId) text('HOST', panelX + panelW - 24, rowCenter, 10, colors.red, 'right', 900);
+    else if (isHost) removeSeatControl(panelX + panelW - 54, y, rowH, player);
   });
-  if (!state.players.length) text('Waiting for players…', innerWidth / 2, 220, 15, colors.muted, 'center', 700);
+  if (!state.players.length) text('Waiting for players…', innerWidth / 2, panelTop + 74, 15, colors.muted, 'center', 700);
   if (isHost) {
     const gap = 10;
     const buttonW = Math.min(180, (innerWidth - 42 - gap) / 2);
     const x = innerWidth / 2 - buttonW - gap / 2;
-    button('Add bot', x, innerHeight - 80, buttonW, 50, () => send('addBot'), state.players.length < 8);
-    button(state.players.length < 2 ? 'Need 2 players' : 'Start game', x + buttonW + gap, innerHeight - 80, buttonW, 50, () => send('start'), state.players.length >= 2);
+    button('Add bot', x, actionY, buttonW, 48, () => send('addBot'), state.players.length < 8, 'secondary');
+    button(state.players.length < 2 ? 'Need 2 players' : 'Start game', x + buttonW + gap, actionY, buttonW, 48, () => send('start'), state.players.length >= 2);
   }
-  else text('The host will start the game', innerWidth / 2, innerHeight - 54, 13, colors.muted, 'center', 800);
+  else text('The host will start the game', innerWidth / 2, actionY + 24, 13, colors.muted, 'center', 800);
 }
 
 function drawResolutionCard(replay, tableRows, top, rowH, cardW, cardH) {
@@ -492,7 +575,8 @@ function drawTable() {
   const replaying = Boolean(replay && !replay.done);
   const tableRows = replay ? replay.rows : state.rows;
   const choiceTitle = replaying ? `${replay.active.name.toUpperCase()} PLAYS ${replay.active.card}` : betweenRounds ? `ROUND ${state.turn} COMPLETE` : state.rowChoice ? (state.rowChoice.mine ? 'CHOOSE A ROW' : `${state.rowChoice.name.toUpperCase()} IS CHOOSING`) : `TURN ${Math.min(state.turn + 1, state.maxTurns)} OF ${state.maxTurns}`;
-  header(choiceTitle, state.you ? `${state.you.score} PTS` : '');
+  const compactTitle = innerWidth < 420 && replaying ? `CARD ${replay.active.card}` : innerWidth < 420 && state.rowChoice && !state.rowChoice.mine ? 'ROW CHOICE' : choiceTitle;
+  header(compactTitle, state.you ? `${state.you.score} PTS` : '');
   const playerY = mobile ? 76 : 82;
   const playerGap = Math.min(120, (innerWidth - 36) / Math.max(1, state.players.length));
   const total = playerGap * state.players.length;
@@ -534,10 +618,10 @@ function drawTable() {
   const tableBottom = handBaseY - footerReserve;
   const maxCardsW = Math.min(innerWidth - 40, 650);
   const widthCardW = Math.min(mobile ? 40 : 58, (maxCardsW - 30) / 6);
-  const verticalCardH = Math.max(34, (tableBottom - top - 18) / 4);
+  const verticalCardH = Math.max(22, (tableBottom - top - 18) / 4);
   const cardW = Math.min(widthCardW, verticalCardH / 1.28);
   const cardH = cardW * 1.28;
-  const rowH = Math.max(cardH + 6, (tableBottom - top - cardH) / 3);
+  const rowH = Math.max(cardH + 2, (tableBottom - top - cardH) / 3);
   const previewRow = !betweenRounds && !state.you?.locked ? placementRow(state.you?.selected, tableRows) : null;
   tableRows.forEach((row, rowIndex) => {
     const y = top + rowIndex * rowH;
@@ -620,8 +704,8 @@ function drawTable() {
   if (betweenRounds && !replaying) {
     text('NEXT ROUND STARTING…', innerWidth / 2, handY - 28, 9, colors.orange, 'center', 900);
   } else if (!state.you?.locked && !state.rowChoice) {
-    const lockW = mobile ? 92 : 110;
-    button('Lock in', innerWidth / 2 - lockW / 2, handY - 76, lockW, 38, () => send('confirm'), state.you?.selected !== null);
+    const lockW = mobile ? 108 : 120;
+    button('Lock in', innerWidth / 2 - lockW / 2, handY - 78, lockW, 44, () => send('confirm'), state.you?.selected !== null);
   }
 }
 
@@ -659,6 +743,9 @@ function drawCelebration(elapsed) {
 
 function drawFinished() {
   header('FINAL SCORES', 'GAME OVER');
+  const compact = innerWidth < 500;
+  const short = innerHeight < 540;
+  const listTop = short ? 150 : 194;
   const ranked = [...state.players].sort((a, b) => a.score - b.score);
   const viewer = state.players.find((player) => player.id === state.you?.id);
   const viewerAchievement = viewer?.session?.lastAchievement;
@@ -666,18 +753,21 @@ function drawFinished() {
   const reveal = reduceMotion ? 1 : easeOut(elapsed / 620);
   drawCelebration(elapsed);
   const winnerLift = reduceMotion ? 0 : Math.sin(visualTime / 240) * 4;
-  drawCrown(innerWidth / 2, 82, innerWidth < 500 ? 17 : 21, winnerLift);
+  drawCrown(innerWidth / 2, short ? 65 : 82, compact ? 17 : 21, winnerLift);
   ctx.save(); ctx.globalAlpha = reveal; ctx.translate(0, (1 - reveal) * 18);
-  text(`${(ranked[0]?.name || 'Nobody').toUpperCase()} WINS!`, innerWidth / 2, 124, innerWidth < 500 ? 30 : 42, colors.cream, 'center', 900);
-  text(viewerAchievement ? `YOUR RUN · ${viewerAchievement}` : 'Fewest skulls. Finest play.', innerWidth / 2, 158, 13, viewerAchievement ? colors.orange : colors.muted, 'center', viewerAchievement ? 900 : 700);
+  fitText(`${(ranked[0]?.name || 'Nobody').toUpperCase()} WINS!`, innerWidth / 2, short ? 94 : 124, innerWidth - 32, compact ? 30 : 42, 17, colors.cream, 'center', 900);
+  fitText(viewerAchievement ? `YOUR RUN · ${viewerAchievement}` : 'Fewest skulls. Finest play.', innerWidth / 2, short ? 120 : 158, innerWidth - 32, 13, 9, viewerAchievement ? colors.orange : colors.muted, 'center', viewerAchievement ? 900 : 700);
   ctx.restore();
   const panelW = Math.min(520, innerWidth - 32);
   const panelX = (innerWidth - panelW) / 2;
   const sessionBest = Math.min(...ranked.map((player) => player.session?.best).filter((score) => Number.isFinite(score)));
-  text(`TABLE SESSION · GAME ${state.gameNumber || 1}`, innerWidth / 2, 181, 9, colors.muted, 'center', 900);
+  text(`TABLE SESSION · GAME ${state.gameNumber || 1}`, innerWidth / 2, listTop - 13, 9, colors.muted, 'center', 900);
+  const actionY = Math.min(innerHeight - 70, listTop + ranked.length * 46 + 16);
+  const rowStep = Math.min(46, (actionY - listTop - 48) / Math.max(1, ranked.length - 1));
+  const rowH = Math.min(38, rowStep - 4);
   ranked.forEach((player, i) => {
     const rowReveal = reduceMotion ? 1 : easeOut((elapsed - 260 - i * 85) / 420);
-    const y = 194 + i * 46;
+    const y = listTop + i * rowStep;
     ctx.save(); ctx.globalAlpha = rowReveal; ctx.translate((1 - rowReveal) * (i % 2 ? 28 : -28), 0);
     const isViewer = player.id === state.you?.id;
     const session = player.session || { games: 1, wins: i === 0 ? 1 : 0, best: player.score };
@@ -685,36 +775,35 @@ function drawFinished() {
     if (i === 0 || isViewer) { ctx.shadowColor = i === 0 ? 'rgba(245,166,35,.28)' : 'rgba(111,218,165,.22)'; ctx.shadowBlur = 18; }
     const rowFill = i === 0 ? colors.orange : isViewer ? 'rgba(111,218,165,.14)' : 'rgba(255,247,233,.07)';
     const rowStroke = isViewer ? colors.green : i === 0 ? colors.orange : colors.line;
-    roundedRect(panelX, y, panelW, 38, 8, rowFill, rowStroke, isViewer ? 2.5 : i === 0 ? 2 : 1);
+    roundedRect(panelX, y, panelW, rowH, 8, rowFill, rowStroke, isViewer ? 2.5 : i === 0 ? 2 : 1);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
-    text(i === 0 ? '★' : `${i + 1}`, panelX + 24, y + 20, 14, i === 0 ? colors.red : colors.muted, 'center', 900);
-    const maxName = innerWidth < 500 ? 7 : 13;
+    text(i === 0 ? '★' : `${i + 1}`, panelX + 24, y + rowH / 2, 14, i === 0 ? colors.red : colors.muted, 'center', 900);
+    const maxName = compact ? 7 : 13;
     const baseName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
     const displayName = `${baseName}${isViewer ? ' · YOU' : ''}`;
     const nameColor = i === 0 ? colors.ink : isViewer ? colors.green : colors.cream;
-    text(displayName, panelX + 48, y + 20, 13, nameColor, 'left', 900);
+    text(displayName, panelX + 48, y + (compact ? rowH * .36 : rowH / 2), compact ? 11 : 13, nameColor, 'left', 900);
     ctx.save(); ctx.font = '900 13px Arial, Helvetica, sans-serif';
     const nameEnd = panelX + 53 + ctx.measureText(displayName).width;
     ctx.restore();
-    const maxCrowns = innerWidth < 500 ? 2 : 4;
+    const maxCrowns = compact ? 2 : 4;
     const shownCrowns = Math.min(session.wins || 0, maxCrowns);
-    for (let crown = 0; crown < shownCrowns; crown++) drawScoreCrown(nameEnd + crown * 15, y + 20, 'challenger', crown);
+    for (let crown = 0; crown < shownCrowns; crown++) drawScoreCrown(nameEnd + crown * 15, y + (compact ? rowH * .36 : rowH / 2), 'challenger', crown);
     let iconEnd = nameEnd + shownCrowns * 15;
     if ((session.wins || 0) > maxCrowns) {
-      text(`×${session.wins}`, iconEnd - 2, y + 20, 8, nameColor, 'left', 900);
+      text(`×${session.wins}`, iconEnd - 2, y + (compact ? rowH * .36 : rowH / 2), 8, nameColor, 'left', 900);
       iconEnd += 18;
     }
-    if (hasSessionBest) drawBestMedal(iconEnd + 3, y + 17, 5.5);
-    const record = innerWidth < 500 ? `${player.score} PTS · ${session.games}G · B${session.best}` : `${player.score} NOW · ${session.games} GAMES · BEST ${session.best}`;
-    fitText(record, panelX + panelW - 18, y + 20, innerWidth < 500 ? 112 : 188, innerWidth < 500 ? 9 : 10.5, 7, i === 0 ? colors.ink : colors.cream, 'right', 900);
+    if (hasSessionBest) drawBestMedal(iconEnd + 3, y + (compact ? rowH * .36 - 3 : rowH / 2 - 3), 5.5);
+    const record = compact ? `${player.score} PTS · ${session.games}G · B${session.best}` : `${player.score} NOW · ${session.games} GAMES · BEST ${session.best}`;
+    fitText(record, panelX + panelW - 18, y + (compact ? rowH * .76 : rowH / 2), compact ? panelW - 66 : 188, compact ? 9 : 10.5, 7, i === 0 ? colors.ink : colors.cream, 'right', 900);
     ctx.restore();
   });
-  const actionY = Math.min(innerHeight - 70, 210 + ranked.length * 46);
   if (state.you?.id === state.hostId) {
     const actionW = Math.min(156, (innerWidth - 46) / 2);
     button('Play again', innerWidth / 2 - actionW - 6, actionY, actionW, 46, () => send('start'));
-    button('Back to arcade', innerWidth / 2 + 6, actionY, actionW, 46, () => { leaveTarget = 'arcade'; leavePrompt = true; });
-  } else button('Back to arcade', innerWidth / 2 - 84, actionY, 168, 46, () => { leaveTarget = 'arcade'; leavePrompt = true; });
+    button('Back to arcade', innerWidth / 2 + 6, actionY, actionW, 46, () => { leaveTarget = 'arcade'; leavePrompt = true; }, true, 'secondary');
+  } else button('Back to arcade', innerWidth / 2 - 84, actionY, 168, 46, () => { leaveTarget = 'arcade'; leavePrompt = true; }, true, 'secondary');
 }
 
 function drawLeavePrompt() {
@@ -730,8 +819,8 @@ function drawLeavePrompt() {
   const warning = state.phase === 'playing' ? 'Your remaining cards will be auto-played.' : leaveTarget === 'arcade' ? 'You will return to Decadence Inc.' : 'You can take another seat anytime.';
   text(warning, innerWidth / 2, y + 82, 12, colors.muted, 'center', 650);
   const buttonW = (w - 46) / 2;
-  button('Stay', x + 16, y + 132, buttonW, 48, () => { leavePrompt = false; });
-  button(leaveTarget === 'arcade' ? 'To arcade' : 'Leave', x + 30 + buttonW, y + 132, buttonW, 48, leaveRoom);
+  button('Stay', x + 16, y + 132, buttonW, 48, () => { leavePrompt = false; }, true, 'secondary');
+  button(leaveTarget === 'arcade' ? 'To arcade' : 'Leave', x + 30 + buttonW, y + 132, buttonW, 48, leaveRoom, true, 'danger');
 }
 
 function drawRemovePrompt() {
@@ -747,12 +836,12 @@ function drawRemovePrompt() {
   text(removePromptPlayer.isBot ? 'REMOVE THIS BOT?' : 'REMOVE THIS PLAYER?', innerWidth / 2, y + 46, 20, colors.cream, 'center', 900);
   text(removePromptPlayer.name, innerWidth / 2, y + 80, 14, colors.muted, 'center', 800);
   const buttonW = (w - 46) / 2;
-  button('Cancel', x + 16, y + 132, buttonW, 48, () => { removePromptPlayer = null; });
+  button('Cancel', x + 16, y + 132, buttonW, 48, () => { removePromptPlayer = null; }, true, 'secondary');
   button('Remove', x + 30 + buttonW, y + 132, buttonW, 48, () => {
     const playerId = removePromptPlayer.id;
     removePromptPlayer = null;
     send('removePlayer', { playerId });
-  });
+  }, true, 'danger');
 }
 
 function render() {

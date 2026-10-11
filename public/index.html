@@ -24,7 +24,7 @@
     .panel::after { right: 7vw; top: 17vh; width: min(30vw, 440px); height: min(24vw, 260px); border: 2px solid rgba(255,179,63,.22); border-radius: 42px; transform: rotate(4deg); box-shadow: 0 0 80px rgba(255,69,77,.08); }
     .panel.hidden { display: none; }
     .panel.joining { opacity: 0; transform: scale(1.025); pointer-events: none; }
-    .arcade-link { position: fixed; top: max(18px, env(safe-area-inset-top)); left: max(18px, env(safe-area-inset-left)); z-index: 8; display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--cream); background: rgba(16,15,14,.72); text-decoration: none; font-size: 11px; font-weight: 900; letter-spacing: .08em; backdrop-filter: blur(12px); transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .arcade-link { position: fixed; top: max(18px, env(safe-area-inset-top)); left: max(18px, env(safe-area-inset-left)); z-index: 8; display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--cream); background: rgba(16,15,14,.72); text-decoration: none; font-size: 11px; font-weight: 900; letter-spacing: .08em; backdrop-filter: blur(12px); transition: transform .18s ease, border-color .18s ease, background .18s ease; }
     .arcade-link:hover, .arcade-link:focus-visible { transform: translateY(-3px) scale(1.02); background: rgba(244,173,62,.12); border-color: rgba(244,173,62,.65); box-shadow: 0 10px 28px rgba(0,0,0,.28); outline: 3px solid rgba(244,173,62,.14); outline-offset: 2px; }
     .arcade-link:active { transform: translateY(1px) scale(.98); }
     .arcade-link[hidden] { display: none; }
@@ -35,12 +35,28 @@
     h1 { position: relative; z-index: 1; margin: 0; color: var(--cream); font: 1000 clamp(54px, 9vw, 88px)/.88 Arial Black, Arial, sans-serif; letter-spacing: -.07em; text-transform: uppercase; }
     h1 span { color: var(--red); text-shadow: 0 8px 0 rgba(126,31,67,.72); }
     .intro { position: relative; z-index: 1; color: var(--muted); line-height: 1.55; margin: 18px 0 24px; font-weight: 700; }
-    .join-card { position: relative; z-index: 1; width: min(520px, 100%); padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(135deg, rgba(67,47,38,.82), rgba(30,24,21,.9)); box-shadow: 0 22px 65px rgba(0,0,0,.34), inset 0 1px rgba(255,255,255,.03); backdrop-filter: blur(12px); transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
+    .join-card { position: relative; z-index: 1; width: min(580px, 100%); padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(135deg, rgba(67,47,38,.82), rgba(30,24,21,.9)); box-shadow: 0 22px 65px rgba(0,0,0,.34), inset 0 1px rgba(255,255,255,.03); backdrop-filter: blur(12px); transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
     .join-card:focus-within { border-color: rgba(244,173,62,.48); box-shadow: 0 26px 70px rgba(0,0,0,.4), 0 0 0 1px rgba(244,173,62,.1); transform: translateY(-2px); }
+    .mode-title { margin: 0 0 13px; color: var(--cream); font-size: 12px; font-weight: 900; letter-spacing: .12em; text-align: left; }
+    .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mode-option { min-height: 128px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,247,233,.045); color: var(--cream); box-shadow: none; text-align: left; text-transform: none; letter-spacing: 0; }
+    .mode-option::after { display: none; }
+    .mode-option:hover, .mode-option:focus-visible { border-color: var(--amber); background: rgba(244,173,62,.12); box-shadow: 0 8px 22px rgba(0,0,0,.2); }
+    .mode-option[aria-pressed="true"] { border-color: var(--amber); background: rgba(244,173,62,.15); box-shadow: inset 0 0 0 1px var(--amber); }
+    .mode-option strong { display: block; margin: 5px 0 7px; font-size: 18px; text-transform: uppercase; }
+    .mode-option small { display: block; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
+    .mode-icon { color: var(--amber); font-size: 23px; line-height: 1; }
+    .mode-detail { margin: 15px 0 0; text-align: left; }
+    .mode-detail[hidden], #join-form[hidden] { display: none; }
+    .mode-detail p { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .mode-detail .join-row { margin-bottom: 11px; }
+    .mode-detail button { white-space: nowrap; }
+    .seat-heading { margin: 0 0 12px; color: var(--green); font-size: 11px; font-weight: 900; text-align: left; text-transform: uppercase; letter-spacing: .1em; }
+    #join-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
     form { width: 100%; text-align: left; }
     label { display: block; margin: 0 0 7px 4px; color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .14em; }
     .join-row { display: flex; gap: 9px; }
-    input, button { min-height: 52px; border: 1.5px solid var(--line); border-radius: 8px; font: 900 15px/1 inherit; }
+    input, button { min-height: 52px; border: 1.5px solid var(--line); border-radius: 8px; font-family: inherit; font-size: 15px; font-weight: 900; line-height: 1.15; }
     input { min-width: 0; flex: 1; padding: 0 16px; background: rgba(255,247,233,.07); color: var(--cream); outline: none; }
     input::placeholder { color: #817771; }
     input:focus { border-color: var(--amber); box-shadow: 0 0 0 4px rgba(255,179,63,.12); }
@@ -50,22 +66,24 @@
     button:hover::after { left: 120%; }
     button:focus-visible { outline: 3px solid rgba(244,173,62,.25); outline-offset: 4px; }
     button:active { transform: translate(3px, 5px) scale(.985); box-shadow: 2px 2px 0 var(--red); transition-duration: .06s; }
+    .mode-option { padding: 16px; }
+    .mode-option:active { transform: scale(.985); box-shadow: none; }
     .join-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 17px 0 0; }
     .join-step { padding: 10px 8px; border: 1px solid rgba(239,221,191,.07); border-radius: 8px; background: rgba(239,221,191,.035); color: var(--muted); font-size: 10px; line-height: 1.25; text-align: center; transition: transform .2s ease, border-color .2s ease, background .2s ease; }
     .join-step:hover { transform: translateY(-3px); border-color: rgba(244,173,62,.3); background: rgba(244,173,62,.07); }
     .join-step strong { display: block; margin-bottom: 3px; color: var(--cream); font-size: 11px; }
     .join-step b { display: inline-grid; place-items: center; width: 19px; height: 19px; margin-bottom: 5px; border-radius: 50%; background: var(--amber); color: var(--ink); font-size: 9px; }
     .hint { margin: 14px 0 0; color: #988c84; font-size: 12px; }
-    .install { margin-top: 14px; min-height: 42px; background: var(--green); border-color: var(--green); }
+    .install { margin-top: 14px; min-height: 44px; background: var(--green); border-color: var(--green); }
     .install[hidden] { display: none; }
-    .secondary { position: relative; z-index: 1; min-height: 42px; margin-top: 10px; background: transparent; border-color: transparent; color: var(--cream); box-shadow: none; }
+    .secondary { position: relative; z-index: 1; min-height: 44px; margin-top: 10px; background: transparent; border-color: transparent; color: var(--cream); box-shadow: none; }
     .secondary:hover { color: var(--amber); background: rgba(244,173,62,.08); box-shadow: none; transform: translateY(-2px); }
     .help-panel { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 18px; background: rgba(0,0,0,.78); backdrop-filter: blur(8px); }
     .help-panel[hidden] { display: none; }
     .help-card { width: min(560px, 100%); max-height: min(720px, calc(100vh - 36px)); overflow-y: auto; padding: 24px; border: 1px solid var(--line); border-radius: 14px; background: #211b19; box-shadow: 8px 10px 0 rgba(255,69,77,.6); text-align: left; }
     .help-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .help-head h2 { margin: 0; color: var(--cream); font: 1000 clamp(26px, 6vw, 40px)/1 Arial Black, Arial, sans-serif; text-transform: uppercase; }
-    .close-help { width: 42px; min-height: 42px; padding: 0; background: transparent; color: var(--cream); box-shadow: none; }
+    .close-help { width: 44px; min-height: 44px; padding: 0; background: transparent; color: var(--cream); box-shadow: none; }
     .close-help:hover { color: var(--amber); background: rgba(244,173,62,.1); box-shadow: none; transform: rotate(8deg) scale(1.06); }
     .rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; counter-reset: rules; }
     .rule { position: relative; min-height: 112px; padding: 15px 14px 14px 45px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,247,233,.045); color: var(--muted); font-size: 13px; line-height: 1.4; }
@@ -87,6 +105,8 @@
       .intro { margin: 12px 0 20px; font-size: 14px; }
       .join-card { padding: 17px; }
       .join-row { flex-direction: column; }
+      .mode-option { min-height: 138px; padding: 12px; }
+      .mode-option strong { font-size: 15px; }
       input, button { min-height: 48px; }
       button { width: 100%; }
       .hint { margin-top: 16px; }
@@ -95,6 +115,12 @@
       .help-card { padding: 18px; }
       .rule-grid { grid-template-columns: 1fr; }
       .rule { min-height: 92px; }
+    }
+    @media (max-width: 380px) {
+      .mode-grid { grid-template-columns: 1fr; }
+      .mode-option { min-height: 96px; }
+      .mode-option strong { display: inline-block; margin: 0 0 5px 8px; vertical-align: middle; }
+      .mode-option small { margin-left: 34px; }
     }
     @media (max-height: 620px) and (max-width: 700px) {
       .mark, .intro, .join-steps { display: none; }
@@ -114,7 +140,20 @@
       <h1>Stack<span>Up</span></h1>
       <p class="intro">Pick smart. Read the table.<br>Leave with the fewest skulls.</p>
       <div class="join-card">
-        <form id="join-form">
+        <p class="mode-title">WHERE'S THE GAME NIGHT?</p>
+        <div class="mode-grid" role="group" aria-label="Choose a table connection">
+          <button id="internet-mode" class="mode-option" type="button" aria-pressed="false"><span class="mode-icon" aria-hidden="true">✦</span><strong>Internet table</strong><small>Play from anywhere. Invite friends with one link.</small></button>
+          <button id="lan-mode" class="mode-option" type="button" aria-pressed="false"><span class="mode-icon" aria-hidden="true">⌁</span><strong>LAN table</strong><small>Play together on the same Wi-Fi. One device hosts.</small></button>
+        </div>
+        <div id="lan-detail" class="mode-detail" hidden>
+          <p id="lan-tip">Start StackUp on a computer at home, then enter the Wi-Fi address shown when it starts. Everyone on that Wi-Fi uses the same address.</p>
+          <form id="lan-form">
+            <label for="lan-address">HOST'S WI-FI ADDRESS</label>
+            <div class="join-row"><input id="lan-address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="192.168.1.10:8080" required><button type="submit">Open LAN table</button></div>
+          </form>
+        </div>
+        <form id="join-form" hidden>
+          <p id="seat-heading" class="seat-heading"></p>
           <label for="name">WHAT SHOULD THE TABLE CALL YOU?</label>
           <div class="join-row">
             <input id="name" maxlength="18" autocomplete="nickname" placeholder="Enter your name" enterkeyhint="go" required autofocus>
@@ -123,10 +162,10 @@
         </form>
         <div class="join-steps" aria-label="How joining works">
           <div class="join-step"><b>1</b><strong>Enter a name</strong>No account needed</div>
-          <div class="join-step"><b>2</b><strong>Share the link</strong>Invite your crew</div>
+          <div class="join-step"><b>2</b><strong>Share this link</strong>Same table, same link</div>
           <div class="join-step"><b>3</b><strong>Lock your card</strong>Reveal together</div>
         </div>
-        <p class="hint">2–8 players · one shared online table</p>
+        <p class="hint">2–8 players per table · Choose a destination before taking a seat</p>
       </div>
       <button id="show-help" class="secondary" type="button">How to play</button>
       <button id="install-app" class="install" type="button" hidden>Install StackUp</button>

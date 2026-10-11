@@ -6,7 +6,7 @@ Browser card game for 2–8 players sharing one server-authoritative table.
 
 - Node.js HTTP server with `ws`; vanilla HTML/CSS/JavaScript client drawn primarily on one canvas.
 - Installable PWA with cached shell, reconnect identity in local storage, and Android/iOS metadata. It remains a client and cannot host the game.
-- Production: `https://stackup-i88f.onrender.com`; custom domain: `stackup.decadenceinc.com`.
+- Production: `https://stackup-i88f.onrender.com`; canonical internet table: `https://stackup.decadenceinc.com`. A LAN table runs on a player's computer and is reached through its Wi-Fi address; each server has its own table and origin-scoped reconnect identity.
 - Rules and validation belong in `server.js`; clients send intents and replay authoritative event logs for presentation only.
 - `public/game.js` exposes `render_game_to_text()` and `advanceTime(ms)` for deterministic QA.
 
@@ -21,7 +21,7 @@ Browser card game for 2–8 players sharing one server-authoritative table.
 
 ## Product conventions
 
-- Lobby leavers free their seat and transfer host status. Reconnect tokens reserve disconnected seats; confirmed Arcade departure releases them. Disconnected active players auto-play their lowest card.
+- Players choose Internet or LAN before joining. Internet routes to the canonical hosted origin; LAN opens the entered local server address. Reconnect is offered after this choice. Lobby leavers free their seat and transfer host status. Reconnect tokens reserve disconnected seats; confirmed Arcade departure releases them. Disconnected active players auto-play their lowest card.
 - Hosts can add bots and remove non-host lobby seats. Bot selection weighs immediate penalty, gap, row length, and shedding high cards.
 - The server automatically advances after each resolution animation/read pause.
 - A table session persists across **Play again** while a human remains, tracking games, wins, best/average score, streaks, and achievements.

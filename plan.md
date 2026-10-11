@@ -1,7 +1,7 @@
 # Current task
 
-- Goal: make personal score/status unmistakable, add competitive crowns from round five, enrich session records with win/best-score iconography, and adopt the current StackUp logo from Decadence.
-- Scope: canvas HUD and final leaderboard, deterministic text-state metadata, browser/PWA icon assets; no rules or scoring changes.
-- Approach: visually prioritize the local player, rank current scores for in-game crowns, render session wins as crown icons and the session-best holder as a medal, then replace favicon/PWA assets from the official 3D source.
-- Risks: icon rows becoming crowded on phones, ties in crown/best-score awards, and animation causing distraction; use compact responsive layouts, award tied scores consistently, and honor reduced motion.
-- Verification: syntax and full tests, deterministic ranking checks, asset/manifest smoke checks, and the required browser screenshot attempt.
+- Goal: make every join, table, lobby, final-score, and dialog button clear, well placed, and easy to tap.
+- Scope: button styling and responsive layout only; preserve actions and game rules.
+- Approach: audit each control, enlarge small touch targets where space permits, separate primary/secondary/destructive actions, and fit final-score actions below the leaderboard.
+- Risks: narrow phones and eight-player layouts can crowd controls; derive positions from viewport space and keep labels readable.
+- Verification: syntax and existing tests, plus targeted geometry checks at representative phone and desktop sizes. Browser preview remains blocked by the current local-access denial.

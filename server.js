@@ -334,6 +334,10 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 const publicDir = path.join(__dirname, 'public');
 const server = http.createServer((req, res) => {
   const pathname = decodeURIComponent((req.url || '/').split('?')[0]);
+  if (pathname === '/api/lan-addresses') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(JSON.stringify(localAddresses()));
+  }
   const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
   const file = path.resolve(publicDir, relative);
   if (!file.startsWith(publicDir + path.sep)) { res.writeHead(403); return res.end('Forbidden'); }
