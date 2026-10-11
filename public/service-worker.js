@@ -1,8 +1,9 @@
-const CACHE = 'stackup-v9';
+const CACHE = 'stackup-v10';
 const APP_SHELL = [
   '/',
   '/game.js',
   '/manifest.webmanifest',
+  '/icons/stackup-3d.webp',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/apple-touch-icon.png',

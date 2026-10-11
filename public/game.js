@@ -449,6 +449,42 @@ function drawResolutionCard(replay, tableRows, top, rowH, cardW, cardH) {
   }
 }
 
+function scoreCrowns(players, turn, phase) {
+  const crowns = new Map();
+  const displayedRound = phase === 'playing' ? turn + 1 : turn;
+  if (displayedRound < 5 || players.length < 2) return crowns;
+  const scores = [...new Set(players.map((player) => player.score))].sort((a, b) => a - b);
+  players.forEach((player) => {
+    if (player.score === scores[0]) crowns.set(player.id, 'leader');
+    else if (scores.length > 1 && player.score === scores[1]) crowns.set(player.id, 'challenger');
+  });
+  return crowns;
+}
+
+function drawScoreCrown(x, y, rank, index = 0) {
+  const leader = rank === 'leader';
+  const size = leader ? 7 : 5.4;
+  const bounce = reduceMotion ? 0 : Math.sin(visualTime / 210 + index * .8) * (leader ? 1.8 : 1.1);
+  ctx.save();
+  if (!reduceMotion && leader) {
+    ctx.shadowColor = 'rgba(244,173,62,.62)';
+    ctx.shadowBlur = 10 + Math.sin(visualTime / 180) * 3;
+  }
+  drawCrown(x, y, size, bounce);
+  ctx.restore();
+}
+
+function drawBestMedal(x, y, size = 7) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = colors.red;
+  ctx.beginPath(); ctx.moveTo(-size * .75, size * .35); ctx.lineTo(-size * .25, size * 1.35); ctx.lineTo(0, size * .68); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(size * .75, size * .35); ctx.lineTo(size * .25, size * 1.35); ctx.lineTo(0, size * .68); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI * 2); ctx.fillStyle = colors.orange; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = colors.ink; ctx.stroke();
+  text('★', 0, 0, size * 1.1, colors.ink, 'center', 900);
+  ctx.restore();
+}
+
 function drawTable() {
   const mobile = innerWidth < 650;
   const betweenRounds = state.phase === 'roundEnd';
@@ -460,15 +496,30 @@ function drawTable() {
   const playerY = mobile ? 76 : 82;
   const playerGap = Math.min(120, (innerWidth - 36) / Math.max(1, state.players.length));
   const total = playerGap * state.players.length;
+  const crownRanks = scoreCrowns(state.players, state.turn, state.phase);
   state.players.forEach((player, i) => {
     const x = (innerWidth - total) / 2 + i * playerGap + playerGap / 2;
     const avatarR = mobile ? 12 : 15;
+    const isYou = player.id === state.you?.id;
     const readyPulse = player.ready && !reduceMotion ? 1 + Math.sin(visualTime / 180 + i) * .1 : 1;
+    if (isYou) {
+      ctx.beginPath(); ctx.arc(x, playerY, avatarR + 4, 0, Math.PI * 2); ctx.fillStyle = 'rgba(244,173,62,.13)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = colors.orange; ctx.stroke();
+    }
     ctx.beginPath(); ctx.arc(x, playerY, avatarR * readyPulse, 0, Math.PI * 2); ctx.fillStyle = player.ready ? colors.green : colors.pale; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = colors.ink; ctx.stroke();
     text(player.name.slice(0, 1).toUpperCase(), x, playerY, mobile ? 9 : 11, player.ready ? colors.ink : colors.cream, 'center', 900);
     const maxName = mobile ? 4 : 8;
     const shortName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
-    text(`${shortName} · ${replayScore(player, replay)}`, x, playerY + (mobile ? 19 : 24), mobile ? 8 : 9, colors.muted, 'center', 800);
+    const displayScore = replayScore(player, replay);
+    const scoreLabel = `${shortName}${isYou ? ' · YOU' : ''} · ${displayScore} PTS`;
+    if (isYou) {
+      const badgeW = Math.min(playerGap - 4, mobile ? 72 : 96);
+      roundedRect(x - badgeW / 2, playerY + (mobile ? 14 : 18), badgeW, mobile ? 18 : 21, 10, colors.orange, colors.ink, 1);
+      fitText(scoreLabel, x, playerY + (mobile ? 23 : 28.5), badgeW - 8, mobile ? 8 : 9, 6.5, colors.ink, 'center', 900);
+    } else {
+      fitText(scoreLabel, x, playerY + (mobile ? 19 : 24), Math.max(42, playerGap - 5), mobile ? 8 : 9, 6.5, colors.muted, 'center', 800);
+    }
+    const crownRank = crownRanks.get(player.id);
+    if (crownRank) drawScoreCrown(x + avatarR * .72, playerY - avatarR * .8, crownRank, i);
   });
 
   const hand = state.you?.hand || [];
@@ -622,21 +673,40 @@ function drawFinished() {
   ctx.restore();
   const panelW = Math.min(520, innerWidth - 32);
   const panelX = (innerWidth - panelW) / 2;
+  const sessionBest = Math.min(...ranked.map((player) => player.session?.best).filter((score) => Number.isFinite(score)));
   text(`TABLE SESSION · GAME ${state.gameNumber || 1}`, innerWidth / 2, 181, 9, colors.muted, 'center', 900);
   ranked.forEach((player, i) => {
     const rowReveal = reduceMotion ? 1 : easeOut((elapsed - 260 - i * 85) / 420);
     const y = 194 + i * 46;
     ctx.save(); ctx.globalAlpha = rowReveal; ctx.translate((1 - rowReveal) * (i % 2 ? 28 : -28), 0);
-    if (i === 0) { ctx.shadowColor = 'rgba(245,166,35,.28)'; ctx.shadowBlur = 18; }
-    roundedRect(panelX, y, panelW, 38, 8, i === 0 ? colors.orange : 'rgba(255,247,233,.07)', i === 0 ? colors.orange : colors.line, i === 0 ? 2 : 1);
+    const isViewer = player.id === state.you?.id;
+    const session = player.session || { games: 1, wins: i === 0 ? 1 : 0, best: player.score };
+    const hasSessionBest = session.best === sessionBest;
+    if (i === 0 || isViewer) { ctx.shadowColor = i === 0 ? 'rgba(245,166,35,.28)' : 'rgba(111,218,165,.22)'; ctx.shadowBlur = 18; }
+    const rowFill = i === 0 ? colors.orange : isViewer ? 'rgba(111,218,165,.14)' : 'rgba(255,247,233,.07)';
+    const rowStroke = isViewer ? colors.green : i === 0 ? colors.orange : colors.line;
+    roundedRect(panelX, y, panelW, 38, 8, rowFill, rowStroke, isViewer ? 2.5 : i === 0 ? 2 : 1);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
     text(i === 0 ? '★' : `${i + 1}`, panelX + 24, y + 20, 14, i === 0 ? colors.red : colors.muted, 'center', 900);
-    const maxName = innerWidth < 500 ? 10 : 18;
-    const displayName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
-    text(displayName, panelX + 48, y + 20, 14, i === 0 ? colors.ink : colors.cream, 'left', 800);
-    const session = player.session || { games: 1, wins: i === 0 ? 1 : 0 };
-    const record = innerWidth < 500 ? `${player.score} · ${session.wins}W/${session.games}G` : `${player.score} NOW · ${session.wins}W/${session.games}G · BEST ${session.best}`;
-    text(record, panelX + panelW - 18, y + 20, innerWidth < 500 ? 10 : 10.5, i === 0 ? colors.ink : colors.cream, 'right', 900);
+    const maxName = innerWidth < 500 ? 7 : 13;
+    const baseName = player.name.length > maxName ? `${player.name.slice(0, maxName - 1)}…` : player.name;
+    const displayName = `${baseName}${isViewer ? ' · YOU' : ''}`;
+    const nameColor = i === 0 ? colors.ink : isViewer ? colors.green : colors.cream;
+    text(displayName, panelX + 48, y + 20, 13, nameColor, 'left', 900);
+    ctx.save(); ctx.font = '900 13px Arial, Helvetica, sans-serif';
+    const nameEnd = panelX + 53 + ctx.measureText(displayName).width;
+    ctx.restore();
+    const maxCrowns = innerWidth < 500 ? 2 : 4;
+    const shownCrowns = Math.min(session.wins || 0, maxCrowns);
+    for (let crown = 0; crown < shownCrowns; crown++) drawScoreCrown(nameEnd + crown * 15, y + 20, 'challenger', crown);
+    let iconEnd = nameEnd + shownCrowns * 15;
+    if ((session.wins || 0) > maxCrowns) {
+      text(`×${session.wins}`, iconEnd - 2, y + 20, 8, nameColor, 'left', 900);
+      iconEnd += 18;
+    }
+    if (hasSessionBest) drawBestMedal(iconEnd + 3, y + 17, 5.5);
+    const record = innerWidth < 500 ? `${player.score} PTS · ${session.games}G · B${session.best}` : `${player.score} NOW · ${session.games} GAMES · BEST ${session.best}`;
+    fitText(record, panelX + panelW - 18, y + 20, innerWidth < 500 ? 112 : 188, innerWidth < 500 ? 9 : 10.5, 7, i === 0 ? colors.ink : colors.cream, 'right', 900);
     ctx.restore();
   });
   const actionY = Math.min(innerHeight - 70, 210 + ranked.length * 46);
@@ -732,6 +802,7 @@ document.addEventListener('fullscreenchange', resize);
 
 window.render_game_to_text = () => {
   const replay = resolutionSnapshot();
+  const crowns = scoreCrowns(state.players, state.turn, state.phase);
   const sessionStandings = [...state.players]
     .sort((a, b) => (b.session?.wins || 0) - (a.session?.wins || 0) || (a.session?.best ?? Infinity) - (b.session?.best ?? Infinity))
     .map((player) => ({ id: player.id, name: player.name, ...player.session }));
@@ -741,6 +812,7 @@ window.render_game_to_text = () => {
     turn: state.turn,
     you: state.you,
     players: state.players,
+    competitiveCrowns: state.players.filter((player) => crowns.has(player.id)).map((player) => ({ playerId: player.id, rank: crowns.get(player.id), score: player.score })),
     session: { gameNumber: state.gameNumber || 0, standings: sessionStandings },
     rows: (replay?.rows || state.rows).map((cards) => ({ cards, points: cards.reduce((sum, card) => sum + points(card), 0) })),
     rowChoice: state.rowChoice,

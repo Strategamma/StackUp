@@ -1,42 +1,31 @@
 # StackUp
 
-Browser-based local-Wi-Fi card game for 2–8 players, inspired by simultaneous-selection row-building games.
+Browser card game for 2–8 players sharing one server-authoritative table.
 
-## Stack
+## Architecture
 
-- Node.js HTTP server with `ws` WebSockets
-- Vanilla HTML/CSS/JavaScript client rendered primarily on one canvas
-- Installable PWA shell with standalone display, cached assets, and Android/iOS home-screen metadata
-- One server-authoritative local-network table with deck, rounds, row placement, scores, and reconnect state
-- Production deployment: `https://stackup-i88f.onrender.com`; intended custom domain: `stackup.decadenceinc.com`
+- Node.js HTTP server with `ws`; vanilla HTML/CSS/JavaScript client drawn primarily on one canvas.
+- Installable PWA with cached shell, reconnect identity in local storage, and Android/iOS metadata. It remains a client and cannot host the game.
+- Production: `https://stackup-i88f.onrender.com`; custom domain: `stackup.decadenceinc.com`.
+- Rules and validation belong in `server.js`; clients send intents and replay authoritative event logs for presentation only.
+- `public/game.js` exposes `render_game_to_text()` and `advanceTime(ms)` for deterministic QA.
 
-## Game rules
+## Rules
 
-- Each player receives 10 unique numbered cards from a 1–104 deck.
-- Four stacks begin with one card each.
-- Players choose simultaneously; selected cards resolve from highest to lowest to preserve descending stack order.
-- Rows descend: a card joins the stack whose final card is the closest larger value, like placing a smaller plate on a larger plate.
-- A card larger than every stack end requires that player to choose and collect any stack before the card starts its replacement.
-- Adding a sixth card makes that player collect the prior five cards as penalty points, then their card starts the replacement stack.
+- Deal 10 unique cards per player from 1–104; seed four rows.
+- Players select, change, or deselect a card, then **Lock in**. Locked cards resolve highest-to-lowest.
+- Rows descend: cards join the closest larger row ending.
+- A card above every ending makes that player choose and collect a row; bots/disconnected players choose the cheapest row.
+- A sixth card collects the previous five as penalty points and starts a replacement row.
 - After 10 turns, the lowest penalty score wins.
 
-## Conventions
+## Product conventions
 
-- Keep rules and validation authoritative in `server.js`; clients only send intents.
-- `public/game.js` exposes `render_game_to_text()` and `advanceTime(ms)` for deterministic QA.
-- Reconnect identity is stored in browser local storage.
-- Players leaving before a game free their seat and transfer host status; disconnected humans auto-play their lowest remaining card so an active game cannot deadlock.
-- A host can fill empty seats with bots for solo or mixed tables. Bots score each playable card by immediate row penalty, placement gap, row length, and the value of shedding high cards.
-- Before a game starts, the host can remove any non-host bot or human seat; human reconnect tokens are invalidated so removed seats are genuinely freed.
-- Browser tokens reclaim a player's reserved seat after lobby or gameplay disconnects; confirmed Arcade departure permanently releases it.
-- Turn input is two-step: players may select, switch, or deselect a card until pressing **Lock in**; only locked choices count as ready.
-- Resolution pauses when a card is above all four row endings, allowing that player to choose any row to collect; bots/disconnected players choose the lowest-penalty row automatically.
-- Every turn ends on a score summary; the server advances automatically after the resolution animation and a brief reading pause, and all player scores stay visible during selection.
-- The PWA is a client and still requires the central Node/WebSocket server; mobile browsers cannot host the LAN game themselves.
-- Clients retain the pre-resolution rows and replay the server event log highest-to-lowest; this is presentation only and never changes authoritative state.
-- StackUp is linked bidirectionally with `https://decadenceinc.com`: the join screen returns directly to the arcade, while active tables confirm before leaving and release/auto-play the player's seat correctly.
-- The client presentation includes card sheen and impact motion plus a crown, confetti, and staged leaderboard reveal at game end; reduced-motion users receive the same information without decorative movement.
-- UI follows decadenceinc.com's arcade language: near-black grid backdrop, cream editorial typography/cards, amber primary actions, red depth accents, green ready/live states, and dark translucent panels.
-- Every viewport renders all six row slots; the sixth is outlined in red with an X to communicate the collection penalty before a card is chosen.
-- A table session persists across **Play again** games while at least one human remains: each seat tracks games, wins, best/average score, current/best win streak, and its latest earned achievement. Stats reset with a new empty table.
-- Active screens expose one deliberate leave action—**D Arcade**—instead of redundant Arcade/Exit controls. Table rows, guidance, actions, and hands occupy separately reserved responsive bands.
+- Lobby leavers free their seat and transfer host status. Reconnect tokens reserve disconnected seats; confirmed Arcade departure releases them. Disconnected active players auto-play their lowest card.
+- Hosts can add bots and remove non-host lobby seats. Bot selection weighs immediate penalty, gap, row length, and shedding high cards.
+- The server automatically advances after each resolution animation/read pause.
+- A table session persists across **Play again** while a human remains, tracking games, wins, best/average score, streaks, and achievements.
+- From displayed round five, current lowest and second-lowest scores receive large/small animated crowns. The local player and score are emphasized. Final standings identify the viewer, show wins as crowns, and medal the session-best score; ties share awards.
+- UI follows Decadence Arcade: near-black grid, cream/beige cards, amber actions, red depth/skulls, green status, dark panels, and reduced-motion equivalents. Six row slots remain visible; the sixth has a red X.
+- The sole active leave control is **D Arcade**, with confirmation. Rows, guidance, actions, and hand use separate responsive bands.
+- Browser/PWA identity uses the official `https://decadenceinc.com/assets/stackup-3d.webp` artwork and locally generated PNG sizes.

@@ -5,9 +5,9 @@
 - Penalty values use compact vector skulls, not font glyphs, for consistent rendering across devices.
 - Motion communicates state: cards deal in, selected cards lift/bounce, locked avatars pulse, and selectable penalty rows breathe.
 - Keep motion subtle, phone-friendly, and respectful of `prefers-reduced-motion`.
-- Phone gameplay uses compact rows without empty-card outlines and a non-overlapping two-row hand grid with large tap targets.
-- Every table screen uses the same top-left Exit control; destructive navigation requires confirmation and clearly explains mid-game auto-play.
-- Round transitions stay inline on the table: resolved rows, hands, and scores remain visible while the host gets a centered next-round action and guests receive a waiting toast.
+- Phone gameplay uses compact outlined slots and a non-overlapping two-row hand grid with large tap targets.
+- Every active table uses one top-left D Arcade control; destructive navigation requires confirmation and clearly explains mid-game auto-play.
+- Round transitions stay inline: resolved rows, hands, and scores remain visible while automatic progression removes host busywork.
 - Rules are available before and during play; first-time players see onboarding once, and tentative card selection previews the destination row or warns that a stack choice will be required.
 - Resolution replays authoritative events one at a time: cards travel to highlighted rows, scores increment after impact, and collected stacks trigger a red skull burst with an exact penalty label.
 - Decadence Arcade navigation is always obvious: direct on the join screen, confirmation-gated at an active table, and offered beside replay after the final score.
@@ -20,5 +20,8 @@
 - Lobby hosts get a compact remove control on every non-host seat, followed by a confirmation dialog for protection against accidental taps.
 - Status copy should answer “what happened?” or “what do I do next?”; prefer in-context table guidance over transient toast notifications.
 - The final leaderboard doubles as the table-session scoreboard: current score plus wins/games, with personal bests, table wins, flawless wins, and win streaks as restrained achievement callouts.
+- Reward iconography is literal: one crown per session win and a medal for the best session score. Highlight the viewer with a green outline and explicit YOU label.
+- From round five, put an animated crown on the current lowest-score avatar and a smaller crown on the second-lowest; tied scores share the same crown tier. Emphasize the local player's live score with an amber badge.
+- Browser and installed-app identity use Decadence's official 3D StackUp mark.
 - Keep only one active-game escape hatch (D Arcade) and confirmation-gate it; redundant exits encourage accidental session churn.
 - Derive table card scale from remaining viewport height after reserving the header, guidance, action, and hand bands. Guidance must fit its lane rather than overlap cards.

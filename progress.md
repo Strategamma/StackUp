@@ -12,6 +12,8 @@ Current messaging/achievement pass: replace vague status copy with exact next ac
 
 Current layout pass: remove the redundant Exit control, keep D Arcade as the only deliberate leave action, and derive row/card geometry from reserved vertical bands so guidance and actions cannot overlap table or hand cards.
 
+Current rewards pass: highlight the local player and score, add round-five leader crowns, replace session W/G shorthand with crown/medal iconography, highlight the viewer on final scores, and use Decadence's current 3D StackUp logo for browser/PWA identity.
+
 - Chosen original title: StackUp.
 - Implementing a server-authoritative WebSocket game for 2–8 players.
 - Implemented lobby/reconnect, host start/replay, private hands, ten turns, placement and penalties, responsive canvas UI.
@@ -49,3 +51,7 @@ Current layout pass: remove the redundant Exit control, keep D Arcade as the onl
 - Verification: session recording is idempotent, tied/current winners are supported, replay streaks and personal bests are covered, and the text-state hook exposes session standings. Twelve rule/integration tests pass. Playwright was attempted again but remains blocked by the host's macOS Chromium permission.
 - Removed the redundant active-game Exit control; D Arcade is now the sole confirmation-gated departure. Replaced independent row sizing with height-aware card scaling and reserved table/guidance/action/hand bands; long guidance text now shrinks to fit its lane.
 - Verification: all 12 tests and syntax checks pass. At the supplied screenshot proportions, the new calculation ends the fourth row before the guidance band, places Lock In below guidance, and starts the hand below the action. Playwright remains blocked by macOS Chromium permission before capture.
+- Added a high-contrast YOU score badge and avatar ring during play. From displayed round five, lowest-score players share an animated main crown and second-lowest players share a smaller crown.
+- Final standings now highlight the viewer, render one crown per session win (compact count after four), and medal all players tied for the lowest session-best score. The deterministic text state exposes current competitive crown tiers.
+- Pulled Decadence's official `stackup-3d.webp`, installed it as WebP/PNG browser and PWA artwork, added correct WebP serving, and bumped the shell cache to v10.
+- Verification: all 16 rule/integration tests pass; client/server/service-worker syntax and diff checks pass; logo assets render with transparency and return correct MIME types. The required Playwright client was attempted, but its host Chromium executable is unavailable, so gameplay screenshot QA remains blocked.
